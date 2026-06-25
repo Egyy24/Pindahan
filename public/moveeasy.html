@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoveEasy - Asisten Pindahan Rumah</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          primary: '#3B82F6',
+          secondary: '#10B981',
+        },
+        keyframes: {
+          fadeIn: { '0%': { opacity: 0, transform: 'translateY(8px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+          slideIn: { '0%': { transform: 'translateX(100%)', opacity: 0 }, '100%': { transform: 'translateX(0)', opacity: 1 } },
+          pop: { '0%': { transform: 'scale(.95)', opacity: 0 }, '100%': { transform: 'scale(1)', opacity: 1 } },
+        },
+        animation: {
+          fadeIn: 'fadeIn .35s ease-out',
+          slideIn: 'slideIn .3s ease-out',
+          pop: 'pop .2s ease-out',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html { -webkit-font-smoothing: antialiased; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+  .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; }
+    .print-block { break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950">
+<div id="root"></div>
+
+<script type="text/jsx-source" id="app-source">
+const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
+const {
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend
+} = Recharts;
+
+/* ============================ DATA LAYER ============================ */
+const STORAGE_KEY = "moveeasy_data";
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+const SAMPLE = {
+  moveDate: addDays(21),
+  totalBudget: 8000000,
+  darkMode: false,
+  items: [
+    { id: uid(), name: "Smart TV 50 inch", category: "Elektronik", qty: 1, priority: "Sangat Penting", packed: false },
+    { id: uid(), name: "Laptop & Charger", category: "Elektronik", qty: 2, priority: "Sangat Penting", packed: true },
+    { id: uid(), name: "Pakaian Sehari-hari", category: "Pakaian", qty: 20, priority: "Penting", packed: true },
+    { id: uid(), name: "Jaket & Mantel", category: "Pakaian", qty: 5, priority: "Normal", packed: false },
+    { id: uid(), name: "Sertifikat & Ijazah", category: "Dokumen", qty: 1, priority: "Sangat Penting", packed: false },
+    { id: uid(), name: "Panci & Wajan", category: "Peralatan Dapur", qty: 6, priority: "Penting", packed: false },
+    { id: uid(), name: "Piring & Gelas", category: "Peralatan Dapur", qty: 24, priority: "Normal", packed: true },
+    { id: uid(), name: "Meja Belajar", category: "Furniture", qty: 1, priority: "Normal", packed: false },
+    { id: uid(), name: "Sofa 3 Dudukan", category: "Furniture", qty: 1, priority: "Penting", packed: false },
+    { id: uid(), name: "Handuk & Sabun", category: "Perlengkapan Mandi", qty: 8, priority: "Tidak Mendesak", packed: true },
+  ],
+  tasks: [
+    { id: uid(), name: "Survey Tempat Baru", deadline: addDays(-3), status: "Selesai", note: "Sudah cek lokasi & kondisi rumah" },
+    { id: uid(), name: "Bayar DP", deadline: addDays(2), status: "Sedang", note: "DP 30%" },
+    { id: uid(), name: "Packing Barang", deadline: addDays(10), status: "Belum", note: "Mulai dari barang jarang dipakai" },
+    { id: uid(), name: "Sewa Kendaraan", deadline: addDays(14), status: "Belum", note: "Bandingkan harga truk" },
+    { id: uid(), name: "Pindahan", deadline: addDays(21), status: "Belum", note: "Hari H" },
+    { id: uid(), name: "Penataan Barang", deadline: addDays(23), status: "Belum", note: "" },
+  ],
+  expenses: [
+    { id: uid(), name: "DP Truk", category: "Sewa Truk", amount: 500000, date: addDays(-2), note: "Booking awal" },
+    { id: uid(), name: "Kardus & Bubble Wrap", category: "Packing Supplies", amount: 350000, date: addDays(-1), note: "30 kardus" },
+    { id: uid(), name: "Deposit Rumah Baru", category: "Deposit", amount: 2000000, date: addDays(-1), note: "" },
+    { id: uid(), name: "Makan Tim Angkut", category: "Makan", amount: 200000, date: todayISO(), note: "" },
+  ],
+  volume: { kardusKecil: 10, kardusSedang: 8, kardusBesar: 5, kasur: 1, lemari: 2, meja: 2, sofa: 1, elektronikBesar: 2 },
+  roomLayout: {},
+  moveDayChecklist: null,
+};
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(SAMPLE));
+    return { ...JSON.parse(JSON.stringify(SAMPLE)), ...JSON.parse(raw) };
+  } catch (e) { return JSON.parse(JSON.stringify(SAMPLE)); }
+}
+
+/* ============================ CONSTANTS ============================ */
+const CATEGORIES = ["Elektronik", "Pakaian", "Dokumen", "Peralatan Dapur", "Furniture", "Perlengkapan Mandi", "Lainnya"];
+const PRIORITIES = ["Sangat Penting", "Penting", "Normal", "Tidak Mendesak"];
+const EXPENSE_CATS = ["Transportasi", "Sewa Truk", "Packing Supplies", "Deposit", "Makan", "Biaya Tak Terduga"];
+const PRIORITY_STYLE = {
+  "Sangat Penting": { bg: "bg-red-100 dark:bg-red-900/40", text: "text-red-700 dark:text-red-300", dot: "bg-red-500", border: "border-red-400" },
+  "Penting": { bg: "bg-orange-100 dark:bg-orange-900/40", text: "text-orange-700 dark:text-orange-300", dot: "bg-orange-500", border: "border-orange-400" },
+  "Normal": { bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-700 dark:text-blue-300", dot: "bg-blue-500", border: "border-blue-400" },
+  "Tidak Mendesak": { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300", dot: "bg-slate-400", border: "border-slate-300" },
+};
+const CHART_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"];
+const STATUS_OPTS = ["Belum", "Sedang", "Selesai"];
+
+const rupiah = (n) => "Rp " + (Number(n) || 0).toLocaleString("id-ID");
+const daysBetween = (d) => Math.ceil((new Date(d) - new Date(todayISO())) / 86400000);
+
+/* ============================ ICONS ============================ */
+const Icon = ({ d, className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const Icons = {
+  dashboard: <><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
+  checklist: <><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>,
+  timeline: <><line x1="12" y1="2" x2="12" y2="22"/><circle cx="12" cy="6" r="2"/><circle cx="12" cy="18" r="2"/></>,
+  budget: <><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>,
+  priority: <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></>,
+  volume: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+  room: <><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></>,
+  moveday: <><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></>,
+  report: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>,
+  sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
+  moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>,
+  menu: <><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>,
+  plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+  edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></>,
+  close: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  print: <><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>,
+  download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+  box: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+  truck: <><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></>,
+  calendar: <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+  wallet: <><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></>,
+  clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+};
+
+/* ============================ TOAST ============================ */
+const ToastCtx = createContext(null);
+const useToast = () => useContext(ToastCtx);
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const push = (msg, type = "success") => {
+    const id = uid();
+    setToasts((t) => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000);
+  };
+  const colors = { success: "bg-secondary", error: "bg-red-500", info: "bg-primary" };
+  return (
+    <ToastCtx.Provider value={push}>
+      {children}
+      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 no-print">
+        {toasts.map((t) => (
+          <div key={t.id} className={`${colors[t.type]} text-white px-4 py-3 rounded-xl shadow-lg animate-slideIn flex items-center gap-2 max-w-xs`}>
+            <Icon d={Icons.checklist} className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-medium">{t.msg}</span>
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+
+/* ============================ UI PRIMITIVES ============================ */
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-pop">
+        <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 rounded-t-2xl">
+          <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"><Icon d={Icons.close} className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+const Field = ({ label, children }) => (
+  <label className="block mb-3">
+    <span className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 block">{label}</span>
+    {children}
+  </label>
+);
+const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
+const TextInput = (p) => <input {...p} className={inputCls} />;
+const Select = ({ options, ...p }) => <select {...p} className={inputCls}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+
+function Btn({ children, variant = "primary", className = "", ...p }) {
+  const v = {
+    primary: "bg-primary hover:bg-blue-600 text-white",
+    secondary: "bg-secondary hover:bg-emerald-600 text-white",
+    ghost: "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200",
+    danger: "bg-red-500 hover:bg-red-600 text-white",
+  };
+  return <button {...p} className={`px-4 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 ${v[variant]} ${className}`}>{children}</button>;
+}
+
+function Card({ title, value, sub, color = "primary", icon }) {
+  const ring = { primary: "text-primary bg-primary/10", secondary: "text-secondary bg-secondary/10", red: "text-red-500 bg-red-500/10", orange: "text-orange-500 bg-orange-500/10", purple: "text-purple-500 bg-purple-500/10" };
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 animate-fadeIn print-block">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{title}</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{value}</p>
+          {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+        </div>
+        {icon && <div className={`p-2.5 rounded-xl ${ring[color]}`}><Icon d={icon} className="w-5 h-5" /></div>}
+      </div>
+    </div>
+  );
+}
+
+function Progress({ value, color = "bg-primary" }) {
+  return (
+    <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${Math.min(100, value)}%` }}></div>
+    </div>
+  );
+}
+
+function EmptyState({ msg }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+      <svg className="w-24 h-24 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      <p className="text-sm font-medium">{msg}</p>
+    </div>
+  );
+}
+
+const SectionTitle = ({ title, desc, action }) => (
+  <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+    <div>
+      <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{title}</h1>
+      {desc && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>}
+    </div>
+    {action}
+  </div>
+);
+
+/* confirm helper */
+function useConfirm() {
+  return (msg) => window.confirm(msg);
+}
+
+/* ============================ PAGES ============================ */
+
+/* ---- DASHBOARD ---- */
+function Dashboard({ data, setData }) {
+  const packed = data.items.filter((i) => i.packed).length;
+  const total = data.items.length;
+  const pct = total ? Math.round((packed / total) * 100) : 0;
+  const used = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const remaining = data.totalBudget - used;
+  const daysLeft = daysBetween(data.moveDate);
+
+  const upcoming = [...data.tasks].filter((t) => t.status !== "Selesai").sort((a, b) => new Date(a.deadline) - new Date(b.deadline)).slice(0, 3);
+
+  const catData = CATEGORIES.map((c) => ({ name: c.length > 8 ? c.slice(0,7)+"…" : c, full: c, jumlah: data.items.filter((i) => i.category === c).length })).filter((d) => d.jumlah > 0);
+
+  const insights = [];
+  if (pct >= 50) insights.push({ t: `${pct}% barang sudah dipacking. Tetap semangat!`, c: "secondary" });
+  else insights.push({ t: `Baru ${pct}% barang dipacking. Ayo mulai dari yang prioritas tinggi.`, c: "orange" });
+  const highPending = data.items.filter((i) => i.priority === "Sangat Penting" && !i.packed).length;
+  if (highPending > 0) insights.push({ t: `Masih ada ${highPending} barang prioritas tinggi belum dipacking.`, c: "red" });
+  if (remaining < 0) insights.push({ t: `Budget over Rp ${Math.abs(remaining).toLocaleString("id-ID")}! Cek pengeluaran.`, c: "red" });
+  else insights.push({ t: `Sisa budget ${rupiah(remaining)} dari total ${rupiah(data.totalBudget)}.`, c: "primary" });
+  if (daysLeft <= 7 && daysLeft >= 0) insights.push({ t: `Tinggal ${daysLeft} hari menuju pindahan. Pastikan semua siap!`, c: "orange" });
+
+  const insColor = { secondary: "bg-secondary/10 text-secondary border-secondary/30", orange: "bg-orange-500/10 text-orange-600 border-orange-500/30", red: "bg-red-500/10 text-red-600 border-red-500/30", primary: "bg-primary/10 text-primary border-primary/30" };
+
+  return (
+    <div>
+      <SectionTitle title="Dashboard" desc="Ringkasan persiapan pindahan kamu" />
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+        <Card title="Total Barang" value={total} icon={Icons.box} color="primary" />
+        <Card title="Sudah Packing" value={packed} icon={Icons.checklist} color="secondary" />
+        <Card title="Belum Packing" value={total - packed} icon={Icons.priority} color="orange" />
+        <Card title="Total Budget" value={rupiah(data.totalBudget)} icon={Icons.wallet} color="primary" />
+        <Card title="Budget Terpakai" value={rupiah(used)} icon={Icons.budget} color="orange" />
+        <Card title="Sisa Budget" value={rupiah(remaining)} color={remaining < 0 ? "red" : "secondary"} icon={Icons.wallet} />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">Progress Packing</h3>
+            <span className="text-2xl font-bold text-primary">{pct}%</span>
+          </div>
+          <Progress value={pct} color="bg-gradient-to-r from-primary to-secondary" />
+          <p className="text-xs text-slate-400 mt-2">{packed} dari {total} barang sudah dipacking</p>
+
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3">Barang per Kategori</h3>
+          <div style={{ width: "100%", height: 240 }}>
+            <ResponsiveContainer>
+              <BarChart data={catData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="jumlah" fill="#3B82F6" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500"><Icon d={Icons.clock} className="w-5 h-5"/></div>
+              <div>
+                <p className="text-sm text-slate-500">Menuju Pindahan</p>
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{daysLeft >= 0 ? `${daysLeft} hari` : "Lewat"}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400">Target: {new Date(data.moveDate).toLocaleDateString("id-ID", { day:'numeric', month:'long', year:'numeric' })}</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Task Terdekat</h3>
+            {upcoming.length === 0 ? <p className="text-sm text-slate-400">Semua task selesai!</p> :
+              <div className="space-y-2">{upcoming.map((t) => {
+                const dl = daysBetween(t.deadline);
+                return (
+                  <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t.name}</span>
+                    <span className={`text-xs font-semibold ${dl < 0 ? 'text-red-500' : dl < 3 ? 'text-orange-500' : 'text-slate-400'}`}>{dl < 0 ? `${-dl}h lalu` : `${dl}h lagi`}</span>
+                  </div>
+                );
+              })}</div>}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">💡 Smart Insights</h3>
+        <div className="grid md:grid-cols-2 gap-3">
+          {insights.map((i, idx) => (
+            <div key={idx} className={`p-3 rounded-xl border text-sm font-medium ${insColor[i.c]}`}>{i.t}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- CHECKLIST BARANG ---- */
+function Checklist({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filterCat, setFilterCat] = useState("Semua");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("priority");
+  const blank = { name: "", category: "Elektronik", qty: 1, priority: "Normal", packed: false };
+  const [form, setForm] = useState(blank);
+
+  const prioRank = { "Sangat Penting": 0, "Penting": 1, "Normal": 2, "Tidak Mendesak": 3 };
+
+  const filtered = useMemo(() => {
+    let r = data.items.filter((i) => (filterCat === "Semua" || i.category === filterCat) && i.name.toLowerCase().includes(search.toLowerCase()));
+    r = [...r].sort((a, b) => sortBy === "name" ? a.name.localeCompare(b.name) : prioRank[a.priority] - prioRank[b.priority]);
+    return r;
+  }, [data.items, filterCat, search, sortBy]);
+
+  const open = (item) => { setEditing(item); setForm(item || blank); setModal(true); };
+  const save = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return toast("Nama barang wajib diisi", "error");
+    if (editing) {
+      setData({ ...data, items: data.items.map((i) => i.id === editing.id ? { ...form, id: editing.id, qty: Number(form.qty) } : i) });
+      toast("Barang diperbarui");
+    } else {
+      setData({ ...data, items: [...data.items, { ...form, id: uid(), qty: Number(form.qty) }] });
+      toast("Barang ditambahkan");
+    }
+    setModal(false);
+  };
+  const togglePack = (id) => setData({ ...data, items: data.items.map((i) => i.id === id ? { ...i, packed: !i.packed } : i) });
+  const remove = (id) => { if (confirm("Hapus barang ini?")) { setData({ ...data, items: data.items.filter((i) => i.id !== id) }); toast("Barang dihapus", "info"); } };
+
+  const packed = data.items.filter((i) => i.packed).length;
+  const pct = data.items.length ? Math.round((packed / data.items.length) * 100) : 0;
+  const pieData = CATEGORIES.map((c) => ({ name: c, value: data.items.filter((i) => i.category === c).length })).filter((d) => d.value > 0);
+
+  return (
+    <div>
+      <SectionTitle title="Checklist Barang" desc="Kelola daftar barang yang akan dipindahkan"
+        action={<Btn onClick={() => open(null)}><Icon d={Icons.plus} className="w-4 h-4"/>Tambah Barang</Btn>} />
+
+      <div className="grid md:grid-cols-3 gap-4 mb-5">
+        <div className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-2"><span className="font-medium text-slate-700 dark:text-slate-200">Progress Packing</span><span className="font-bold text-primary">{pct}%</span></div>
+          <Progress value={pct} color="bg-secondary" />
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-around text-center">
+          <div><p className="text-2xl font-bold text-secondary">{packed}</p><p className="text-xs text-slate-400">Packed</p></div>
+          <div><p className="text-2xl font-bold text-orange-500">{data.items.length - packed}</p><p className="text-xs text-slate-400">Belum</p></div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <input placeholder="Cari barang…" value={search} onChange={(e) => setSearch(e.target.value)} className={inputCls + " flex-1 min-w-[140px]"} />
+            <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className={inputCls + " w-auto"}>{["Semua", ...CATEGORIES].map((c) => <option key={c}>{c}</option>)}</select>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={inputCls + " w-auto"}><option value="priority">Sort: Prioritas</option><option value="name">Sort: Nama</option></select>
+          </div>
+          {filtered.length === 0 ? <EmptyState msg="Belum ada barang. Tambahkan barang pertamamu!" /> :
+            <div className="space-y-2">{filtered.map((i) => {
+              const ps = PRIORITY_STYLE[i.priority];
+              return (
+                <div key={i.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition">
+                  <input type="checkbox" checked={i.packed} onChange={() => togglePack(i.id)} className="w-5 h-5 rounded accent-secondary cursor-pointer" />
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-slate-800 dark:text-slate-100 truncate ${i.packed ? 'line-through text-slate-400' : ''}`}>{i.name}</p>
+                    <p className="text-xs text-slate-400">{i.category} · {i.qty} pcs</p>
+                  </div>
+                  <span className={`hidden sm:flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${ps.bg} ${ps.text}`}><span className={`w-1.5 h-1.5 rounded-full ${ps.dot}`}></span>{i.priority}</span>
+                  <button onClick={() => open(i)} className="p-1.5 text-slate-400 hover:text-primary"><Icon d={Icons.edit} className="w-4 h-4"/></button>
+                  <button onClick={() => remove(i.id)} className="p-1.5 text-slate-400 hover:text-red-500"><Icon d={Icons.trash} className="w-4 h-4"/></button>
+                </div>
+              );
+            })}</div>}
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Distribusi Kategori</h3>
+          {pieData.length === 0 ? <EmptyState msg="Belum ada data" /> :
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e) => e.value}>
+                    {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip /><Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>}
+        </div>
+      </div>
+
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Edit Barang" : "Tambah Barang"}>
+        <form onSubmit={save}>
+          <Field label="Nama Barang"><TextInput value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Lemari Pakaian" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Kategori"><Select options={CATEGORIES} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></Field>
+            <Field label="Jumlah"><TextInput type="number" min="1" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} /></Field>
+          </div>
+          <Field label="Prioritas"><Select options={PRIORITIES} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} /></Field>
+          <label className="flex items-center gap-2 mb-4 cursor-pointer">
+            <input type="checkbox" checked={form.packed} onChange={(e) => setForm({ ...form, packed: e.target.checked })} className="w-5 h-5 rounded accent-secondary" />
+            <span className="text-sm text-slate-600 dark:text-slate-300">Sudah dipacking</span>
+          </label>
+          <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setModal(false)}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+/* ---- TIMELINE ---- */
+function Timeline({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const blank = { name: "", deadline: todayISO(), status: "Belum", note: "" };
+  const [form, setForm] = useState(blank);
+
+  const sorted = [...data.tasks].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  const done = data.tasks.filter((t) => t.status === "Selesai").length;
+  const pct = data.tasks.length ? Math.round((done / data.tasks.length) * 100) : 0;
+
+  const open = (t) => { setEditing(t); setForm(t || blank); setModal(true); };
+  const save = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return toast("Nama task wajib diisi", "error");
+    if (editing) { setData({ ...data, tasks: data.tasks.map((t) => t.id === editing.id ? { ...form, id: editing.id } : t) }); toast("Task diperbarui"); }
+    else { setData({ ...data, tasks: [...data.tasks, { ...form, id: uid() }] }); toast("Task ditambahkan"); }
+    setModal(false);
+  };
+  const remove = (id) => { if (confirm("Hapus task ini?")) { setData({ ...data, tasks: data.tasks.filter((t) => t.id !== id) }); toast("Task dihapus", "info"); } };
+  const cycle = (t) => { const next = STATUS_OPTS[(STATUS_OPTS.indexOf(t.status) + 1) % 3]; setData({ ...data, tasks: data.tasks.map((x) => x.id === t.id ? { ...x, status: next } : x) }); };
+
+  const statusColor = { "Belum": "bg-slate-300 dark:bg-slate-600", "Sedang": "bg-orange-400", "Selesai": "bg-secondary" };
+  const statusBadge = { "Belum": "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", "Sedang": "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300", "Selesai": "bg-emerald-100 text-secondary dark:bg-emerald-900/40" };
+
+  // mini calendar (current month)
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const tasksByDate = {};
+  data.tasks.forEach((t) => { const d = new Date(t.deadline); if (d.getFullYear() === y && d.getMonth() === m) (tasksByDate[d.getDate()] = tasksByDate[d.getDate()] || []).push(t); });
+
+  return (
+    <div>
+      <SectionTitle title="Timeline Pindahan" desc="Atur tahapan & deadline persiapan"
+        action={<Btn onClick={() => open(null)}><Icon d={Icons.plus} className="w-4 h-4"/>Tambah Task</Btn>} />
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-5">
+        <div className="flex items-center justify-between mb-2"><span className="font-medium text-slate-700 dark:text-slate-200">Progress Timeline</span><span className="font-bold text-primary">{pct}%</span></div>
+        <Progress value={pct} color="bg-primary" />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          {sorted.length === 0 ? <EmptyState msg="Belum ada task" /> :
+            <div className="relative pl-8">
+              <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-700"></div>
+              {sorted.map((t) => {
+                const dl = daysBetween(t.deadline);
+                const warn = t.status !== "Selesai" && dl < 0 ? "text-red-500" : t.status !== "Selesai" && dl < 3 ? "text-orange-500" : "text-slate-400";
+                return (
+                  <div key={t.id} className="relative mb-5 last:mb-0 animate-fadeIn">
+                    <div className={`absolute -left-[26px] top-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${statusColor[t.status]}`}></div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">{t.name}</p>
+                          <button onClick={() => cycle(t)} className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge[t.status]}`}>{t.status}</button>
+                        </div>
+                        <p className={`text-xs mt-0.5 font-medium ${warn}`}>{new Date(t.deadline).toLocaleDateString("id-ID", { day:'numeric', month:'short' })} · {dl < 0 ? `${-dl} hari lalu` : `${dl} hari lagi`}</p>
+                        {t.note && <p className="text-xs text-slate-400 mt-1">{t.note}</p>}
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => open(t)} className="p-1.5 text-slate-400 hover:text-primary"><Icon d={Icons.edit} className="w-4 h-4"/></button>
+                        <button onClick={() => remove(t.id)} className="p-1.5 text-slate-400 hover:text-red-500"><Icon d={Icons.trash} className="w-4 h-4"/></button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>}
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3 capitalize">{now.toLocaleDateString("id-ID", { month:'long', year:'numeric' })}</h3>
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {["M","S","S","R","K","J","S"].map((d, i) => <div key={i} className="text-slate-400 font-medium py-1">{d}</div>)}
+            {Array(firstDay).fill(0).map((_, i) => <div key={"e"+i}></div>)}
+            {Array(daysInMonth).fill(0).map((_, i) => {
+              const day = i + 1; const has = tasksByDate[day]; const isToday = day === now.getDate();
+              return (
+                <div key={day} className={`relative py-1.5 rounded-lg ${isToday ? 'bg-primary text-white font-bold' : has ? 'bg-secondary/15 text-secondary font-semibold' : 'text-slate-600 dark:text-slate-300'}`} title={has ? has.map((t)=>t.name).join(", ") : ""}>
+                  {day}{has && !isToday && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-secondary"></span>}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 space-y-1 text-xs text-slate-500">
+            {Object.keys(tasksByDate).length === 0 ? <p className="text-slate-400">Tidak ada task bulan ini</p> :
+              Object.entries(tasksByDate).map(([d, ts]) => <p key={d}>📌 {d}: {ts.map((t) => t.name).join(", ")}</p>)}
+          </div>
+        </div>
+      </div>
+
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Edit Task" : "Tambah Task"}>
+        <form onSubmit={save}>
+          <Field label="Nama Task"><TextInput value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Deadline"><TextInput type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} /></Field>
+            <Field label="Status"><Select options={STATUS_OPTS} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} /></Field>
+          </div>
+          <Field label="Catatan"><TextInput value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
+          <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setModal(false)}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+/* ---- BUDGET ---- */
+function Budget({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [budgetModal, setBudgetModal] = useState(false);
+  const [budgetInput, setBudgetInput] = useState(data.totalBudget);
+  const blank = { name: "", category: "Transportasi", amount: "", date: todayISO(), note: "" };
+  const [form, setForm] = useState(blank);
+
+  const used = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const remaining = data.totalBudget - used;
+
+  const open = (ex) => { setEditing(ex); setForm(ex || blank); setModal(true); };
+  const save = (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.amount) return toast("Lengkapi data pengeluaran", "error");
+    if (editing) { setData({ ...data, expenses: data.expenses.map((x) => x.id === editing.id ? { ...form, id: editing.id, amount: Number(form.amount) } : x) }); toast("Pengeluaran diperbarui"); }
+    else { setData({ ...data, expenses: [...data.expenses, { ...form, id: uid(), amount: Number(form.amount) }] }); toast("Pengeluaran ditambahkan"); }
+    setModal(false);
+  };
+  const remove = (id) => { if (confirm("Hapus pengeluaran ini?")) { setData({ ...data, expenses: data.expenses.filter((x) => x.id !== id) }); toast("Dihapus", "info"); } };
+  const saveBudget = (e) => { e.preventDefault(); setData({ ...data, totalBudget: Number(budgetInput) }); setBudgetModal(false); toast("Budget diperbarui"); };
+
+  const pieData = EXPENSE_CATS.map((c) => ({ name: c, value: data.expenses.filter((e) => e.category === c).reduce((s, e) => s + Number(e.amount), 0) })).filter((d) => d.value > 0);
+  const byDate = {};
+  data.expenses.forEach((e) => { byDate[e.date] = (byDate[e.date] || 0) + Number(e.amount); });
+  const barData = Object.entries(byDate).sort().map(([d, v]) => ({ name: new Date(d).toLocaleDateString("id-ID", { day:'numeric', month:'short' }), jumlah: v }));
+
+  return (
+    <div>
+      <SectionTitle title="Budget Planner" desc="Pantau pengeluaran pindahan"
+        action={<div className="flex gap-2"><Btn variant="ghost" onClick={() => { setBudgetInput(data.totalBudget); setBudgetModal(true); }}>Set Budget</Btn><Btn onClick={() => open(null)}><Icon d={Icons.plus} className="w-4 h-4"/>Tambah</Btn></div>} />
+
+      <div className="grid md:grid-cols-3 gap-4 mb-5">
+        <Card title="Total Budget" value={rupiah(data.totalBudget)} icon={Icons.wallet} color="primary" />
+        <Card title="Terpakai" value={rupiah(used)} sub={`${data.totalBudget ? Math.round(used/data.totalBudget*100) : 0}% dari budget`} icon={Icons.budget} color="orange" />
+        <Card title="Sisa" value={rupiah(remaining)} icon={Icons.wallet} color={remaining < 0 ? "red" : "secondary"} sub={remaining < 0 ? "Over budget!" : ""} />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5 mb-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Pengeluaran per Kategori</h3>
+          {pieData.length === 0 ? <EmptyState msg="Belum ada pengeluaran" /> :
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
+                    {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => rupiah(v)} /><Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>}
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Pengeluaran per Hari</h3>
+          {barData.length === 0 ? <EmptyState msg="Belum ada pengeluaran" /> :
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => (v/1000)+"k"} />
+                  <Tooltip formatter={(v) => rupiah(v)} /><Bar dataKey="jumlah" fill="#10B981" radius={[6,6,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Daftar Pengeluaran</h3>
+        {data.expenses.length === 0 ? <EmptyState msg="Belum ada pengeluaran" /> :
+          <div className="space-y-2">{[...data.expenses].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((e) => (
+            <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{e.name}</p>
+                <p className="text-xs text-slate-400">{e.category} · {new Date(e.date).toLocaleDateString("id-ID")}{e.note ? ` · ${e.note}` : ''}</p>
+              </div>
+              <span className="font-semibold text-slate-700 dark:text-slate-200">{rupiah(e.amount)}</span>
+              <button onClick={() => open(e)} className="p-1.5 text-slate-400 hover:text-primary"><Icon d={Icons.edit} className="w-4 h-4"/></button>
+              <button onClick={() => remove(e.id)} className="p-1.5 text-slate-400 hover:text-red-500"><Icon d={Icons.trash} className="w-4 h-4"/></button>
+            </div>
+          ))}</div>}
+      </div>
+
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Edit Pengeluaran" : "Tambah Pengeluaran"}>
+        <form onSubmit={save}>
+          <Field label="Nama"><TextInput value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Kategori"><Select options={EXPENSE_CATS} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></Field>
+            <Field label="Jumlah (Rp)"><TextInput type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+          </div>
+          <Field label="Tanggal"><TextInput type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+          <Field label="Catatan"><TextInput value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
+          <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setModal(false)}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        </form>
+      </Modal>
+
+      <Modal open={budgetModal} onClose={() => setBudgetModal(false)} title="Set Total Budget">
+        <form onSubmit={saveBudget}>
+          <Field label="Total Budget (Rp)"><TextInput type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} /></Field>
+          <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setBudgetModal(false)}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+/* ---- PRIORITAS PACKING ---- */
+function Priority({ data, setData }) {
+  const togglePack = (id) => setData({ ...data, items: data.items.map((i) => i.id === id ? { ...i, packed: !i.packed } : i) });
+  const [filter, setFilter] = useState("Semua");
+  return (
+    <div>
+      <SectionTitle title="Prioritas Packing" desc="Barang dikelompokkan berdasarkan tingkat prioritas" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        {PRIORITIES.map((p) => {
+          const list = data.items.filter((i) => i.priority === p);
+          const ps = PRIORITY_STYLE[p];
+          return <div key={p} className={`rounded-2xl p-4 border-2 ${ps.border} ${ps.bg}`}><p className={`text-xs font-semibold ${ps.text}`}>{p}</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{list.length}</p><p className="text-xs text-slate-500">{list.filter((i)=>i.packed).length} packed</p></div>;
+        })}
+      </div>
+
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {["Semua", ...PRIORITIES].map((p) => <button key={p} onClick={() => setFilter(p)} className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${filter === p ? 'bg-primary text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>{p}</button>)}
+      </div>
+
+      <div className="space-y-6">
+        {PRIORITIES.filter((p) => filter === "Semua" || filter === p).map((p) => {
+          const list = data.items.filter((i) => i.priority === p);
+          if (list.length === 0) return null;
+          const ps = PRIORITY_STYLE[p];
+          return (
+            <div key={p}>
+              <div className="flex items-center gap-2 mb-3"><span className={`w-3 h-3 rounded-full ${ps.dot}`}></span><h3 className="font-bold text-slate-800 dark:text-slate-100">{p}</h3><span className="text-sm text-slate-400">({list.length})</span></div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {list.map((i) => (
+                  <div key={i.id} className={`rounded-xl p-4 border-l-4 ${ps.border} bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between gap-2`}>
+                    <div className="min-w-0"><p className={`font-medium text-slate-800 dark:text-slate-100 truncate ${i.packed ? 'line-through text-slate-400' : ''}`}>{i.name}</p><p className="text-xs text-slate-400">{i.category} · {i.qty} pcs</p></div>
+                    <button onClick={() => togglePack(i.id)} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg ${i.packed ? 'bg-secondary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>{i.packed ? '✓ Packed' : 'Tandai'}</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---- ESTIMASI VOLUME ---- */
+function Volume({ data, setData }) {
+  const toast = useToast();
+  const v = data.volume;
+  const set = (k, val) => setData({ ...data, volume: { ...v, [k]: Number(val) || 0 } });
+  // volume m3 estimates
+  const vol = v.kardusKecil * 0.03 + v.kardusSedang * 0.06 + v.kardusBesar * 0.12 + v.kasur * 1.2 + v.lemari * 0.9 + v.meja * 0.4 + v.sofa * 1.0 + v.elektronikBesar * 0.3;
+  let rec, icon, cost;
+  if (vol < 1) { rec = "Motor / Ojek"; icon = "🏍️"; cost = "Rp 50.000 - 150.000"; }
+  else if (vol < 3) { rec = "Mobil"; icon = "🚗"; cost = "Rp 200.000 - 400.000"; }
+  else if (vol < 6) { rec = "Pickup"; icon = "🛻"; cost = "Rp 400.000 - 700.000"; }
+  else if (vol < 15) { rec = "Truk Kecil"; icon = "🚚"; cost = "Rp 700.000 - 1.500.000"; }
+  else { rec = "Truk Besar"; icon = "🚛"; cost = "Rp 1.500.000 - 3.500.000"; }
+  const gaugePct = Math.min(100, (vol / 20) * 100);
+
+  const fields = [
+    ["kardusKecil", "Kardus Kecil"], ["kardusSedang", "Kardus Sedang"], ["kardusBesar", "Kardus Besar"],
+    ["kasur", "Kasur"], ["lemari", "Lemari"], ["meja", "Meja"], ["sofa", "Sofa"], ["elektronikBesar", "Elektronik Besar"],
+  ];
+
+  return (
+    <div>
+      <SectionTitle title="Estimasi Volume" desc="Hitung volume barang & rekomendasi kendaraan" />
+      <div className="grid lg:grid-cols-2 gap-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">Input Barang</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {fields.map(([k, l]) => (
+              <Field key={k} label={l}><TextInput type="number" min="0" value={v[k]} onChange={(e) => set(k, e.target.value)} /></Field>
+            ))}
+          </div>
+          <Btn variant="secondary" onClick={() => toast("Estimasi diperbarui")} className="w-full mt-2">Perbarui Estimasi</Btn>
+        </div>
+
+        <div className="space-y-5">
+          <div className="bg-gradient-to-br from-primary to-blue-600 rounded-2xl p-6 shadow-sm text-white text-center">
+            <p className="text-sm opacity-90">Estimasi Volume Total</p>
+            <p className="text-5xl font-bold mt-2">{vol.toFixed(2)}<span className="text-2xl"> m³</span></p>
+            <div className="mt-4 w-full h-3 bg-white/30 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${gaugePct}%` }}></div>
+            </div>
+            <p className="text-xs opacity-80 mt-1">0 m³ ──────────── 20 m³+</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 text-center">
+            <p className="text-sm text-slate-500">Rekomendasi Kendaraan</p>
+            <p className="text-6xl my-3">{icon}</p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{rec}</p>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/10 text-secondary font-semibold"><Icon d={Icons.wallet} className="w-4 h-4"/>{cost}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- ROOM PLANNER ---- */
+const FURNITURE = {
+  "Kasur": { w: 2, h: 2, color: "#3B82F6" },
+  "Lemari": { w: 1, h: 2, color: "#10B981" },
+  "Meja": { w: 1, h: 1, color: "#F59E0B" },
+  "Kursi": { w: 1, h: 1, color: "#EF4444" },
+  "Sofa": { w: 2, h: 1, color: "#8B5CF6" },
+  "Rak": { w: 1, h: 2, color: "#EC4899" },
+  "Meja Makan": { w: 2, h: 2, color: "#14B8A6" },
+};
+function RoomPlanner({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [selected, setSelected] = useState("Kasur");
+  const [layout, setLayout] = useState(data.roomLayout || {});
+  const GRID = 10;
+
+  const place = (r, c) => {
+    const key = `${r}-${c}`;
+    if (layout[key]) {
+      const nl = { ...layout }; delete nl[key]; setLayout(nl);
+    } else {
+      setLayout({ ...layout, [key]: selected });
+    }
+  };
+  const save = () => { setData({ ...data, roomLayout: layout }); toast("Layout disimpan"); };
+  const clear = () => { if (confirm("Hapus semua furniture?")) { setLayout({}); toast("Layout dibersihkan", "info"); } };
+
+  return (
+    <div>
+      <SectionTitle title="Room Planner" desc="Rencanakan tata letak furniture (grid 50cm × 50cm)"
+        action={<div className="flex gap-2"><Btn variant="ghost" onClick={clear}>Clear All</Btn><Btn variant="secondary" onClick={save}>Save Layout</Btn></div>} />
+      <div className="grid lg:grid-cols-4 gap-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Pilih Furniture</h3>
+          <div className="space-y-2">
+            {Object.entries(FURNITURE).map(([name, f]) => (
+              <button key={name} onClick={() => setSelected(name)} className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition ${selected === name ? 'border-primary ring-2 ring-primary/30' : 'border-slate-200 dark:border-slate-700'}`}>
+                <span className="w-6 h-6 rounded" style={{ background: f.color }}></span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{name}</span>
+                <span className="text-xs text-slate-400 ml-auto">{f.w}×{f.h}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-3">Klik sel untuk menempatkan/menghapus furniture yang dipilih.</p>
+        </div>
+
+        <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 overflow-x-auto">
+          <div className="inline-grid gap-0.5 mx-auto" style={{ gridTemplateColumns: `repeat(${GRID}, minmax(28px, 1fr))` }}>
+            {Array(GRID).fill(0).map((_, r) => Array(GRID).fill(0).map((_, c) => {
+              const key = `${r}-${c}`; const f = layout[key];
+              return (
+                <button key={key} onClick={() => place(r, c)} className="aspect-square rounded-sm border border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                  style={f ? { background: FURNITURE[f].color } : {}} title={f || ""}>
+                  {f && <span className="text-[8px] text-white font-bold">{f[0]}</span>}
+                </button>
+              );
+            }))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {Object.entries(FURNITURE).map(([name, f]) => (
+              <div key={name} className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 rounded" style={{ background: f.color }}></span>{name}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- MOVE DAY CHECKLIST ---- */
+const DEFAULT_MOVEDAY = () => {
+  const make = (phase, names) => names.map((n) => ({ id: uid(), phase, name: n, status: "Belum", time: "" }));
+  return [
+    ...make("Sebelum Berangkat", ["Cabut semua peralatan listrik", "Foto meteran listrik & air", "Cek seluruh ruangan", "Ambil semua dokumen penting", "Kunci semua pintu & jendela", "Foto kondisi rumah lama"]),
+    ...make("Saat Pindahan", ["Cek semua kardus sudah dimuat", "Koordinasi dengan tim angkut", "Foto bukti kondisi barang sebelum dimuat"]),
+    ...make("Setelah Sampai", ["Foto meteran listrik & air rumah baru", "Cek kondisi semua barang", "Foto kondisi rumah baru"]),
+  ];
+};
+function MoveDay({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const list = data.moveDayChecklist || DEFAULT_MOVEDAY();
+  useEffect(() => { if (!data.moveDayChecklist) setData({ ...data, moveDayChecklist: list }); }, []);
+  const [custom, setCustom] = useState("");
+  const [phase, setPhase] = useState("Sebelum Berangkat");
+
+  const update = (nl) => setData({ ...data, moveDayChecklist: nl });
+  const cycle = (id) => update(list.map((i) => {
+    if (i.id !== id) return i;
+    const next = STATUS_OPTS[(STATUS_OPTS.indexOf(i.status) + 1) % 3];
+    return { ...i, status: next, time: next === "Selesai" ? new Date().toLocaleTimeString("id-ID", { hour:'2-digit', minute:'2-digit' }) : "" };
+  }));
+  const add = (e) => { e.preventDefault(); if (!custom.trim()) return; update([...list, { id: uid(), phase, name: custom, status: "Belum", time: "" }]); setCustom(""); toast("Item ditambahkan"); };
+  const remove = (id) => { if (confirm("Hapus item?")) { update(list.filter((i) => i.id !== id)); toast("Dihapus", "info"); } };
+
+  const done = list.filter((i) => i.status === "Selesai").length;
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+  const phases = ["Sebelum Berangkat", "Saat Pindahan", "Setelah Sampai"];
+  const statusBadge = { "Belum": "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", "Sedang": "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300", "Selesai": "bg-emerald-100 text-secondary dark:bg-emerald-900/40" };
+
+  return (
+    <div>
+      <SectionTitle title="Move Day Checklist" desc="Checklist khusus hari pindahan" />
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-5">
+        <div className="flex items-center justify-between mb-2"><span className="font-medium text-slate-700 dark:text-slate-200">Progress Hari H</span><span className="font-bold text-primary">{pct}%</span></div>
+        <Progress value={pct} color="bg-gradient-to-r from-primary to-secondary" />
+      </div>
+
+      <form onSubmit={add} className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 mb-5 flex flex-wrap gap-2">
+        <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Tambah item custom…" className={inputCls + " flex-1 min-w-[160px]"} />
+        <select value={phase} onChange={(e) => setPhase(e.target.value)} className={inputCls + " w-auto"}>{phases.map((p) => <option key={p}>{p}</option>)}</select>
+        <Btn type="submit"><Icon d={Icons.plus} className="w-4 h-4"/>Tambah</Btn>
+      </form>
+
+      <div className="grid md:grid-cols-3 gap-5">
+        {phases.map((p) => (
+          <div key={p} className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">{p}</h3>
+            <div className="space-y-2">
+              {list.filter((i) => i.phase === p).map((i) => (
+                <div key={i.id} className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800">
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium text-slate-700 dark:text-slate-200 ${i.status === 'Selesai' ? 'line-through text-slate-400' : ''}`}>{i.name}</p>
+                    {i.time && <p className="text-xs text-secondary">✓ {i.time}</p>}
+                  </div>
+                  <button onClick={() => cycle(i.id)} className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge[i.status]}`}>{i.status}</button>
+                  <button onClick={() => remove(i.id)} className="p-1 text-slate-400 hover:text-red-500"><Icon d={Icons.trash} className="w-3.5 h-3.5"/></button>
+                </div>
+              ))}
+              {list.filter((i) => i.phase === p).length === 0 && <p className="text-xs text-slate-400">Belum ada item</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---- LAPORAN AKHIR ---- */
+function Report({ data }) {
+  const toast = useToast();
+  const packed = data.items.filter((i) => i.packed).length;
+  const used = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const daysLeft = daysBetween(data.moveDate);
+  const tasksDone = data.tasks.filter((t) => t.status === "Selesai").length;
+
+  const catData = CATEGORIES.map((c) => ({ name: c.slice(0,8), jumlah: data.items.filter((i) => i.category === c).length })).filter((d) => d.jumlah > 0);
+  const expPie = EXPENSE_CATS.map((c) => ({ name: c, value: data.expenses.filter((e) => e.category === c).reduce((s, e) => s + Number(e.amount), 0) })).filter((d) => d.value > 0);
+
+  const exportJSON = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "moveeasy-data.json"; a.click();
+    URL.revokeObjectURL(url);
+    toast("Data diekspor sebagai JSON");
+  };
+
+  return (
+    <div>
+      <SectionTitle title="Laporan Akhir" desc="Ringkasan lengkap persiapan pindahan"
+        action={<div className="flex gap-2 no-print"><Btn variant="ghost" onClick={() => window.print()}><Icon d={Icons.print} className="w-4 h-4"/>Print</Btn><Btn variant="secondary" onClick={exportJSON}><Icon d={Icons.download} className="w-4 h-4"/>Export JSON</Btn></div>} />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <Card title="Total Barang" value={data.items.length} icon={Icons.box} color="primary" />
+        <Card title="Sudah Packing" value={`${packed}/${data.items.length}`} icon={Icons.checklist} color="secondary" />
+        <Card title="Total Biaya" value={rupiah(used)} icon={Icons.wallet} color="orange" />
+        <Card title="Waktu Persiapan" value={daysLeft >= 0 ? `${daysLeft} hari` : "Selesai"} icon={Icons.clock} color="purple" />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5 mb-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Barang per Kategori</h3>
+          <div style={{ width: "100%", height: 240 }}><ResponsiveContainer><BarChart data={catData}><CartesianGrid strokeDasharray="3 3" opacity={0.3}/><XAxis dataKey="name" tick={{ fontSize: 11 }}/><YAxis allowDecimals={false} tick={{ fontSize: 11 }}/><Tooltip/><Bar dataKey="jumlah" fill="#3B82F6" radius={[6,6,0,0]}/></BarChart></ResponsiveContainer></div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Pengeluaran per Kategori</h3>
+          {expPie.length === 0 ? <EmptyState msg="Belum ada data"/> :
+          <div style={{ width: "100%", height: 240 }}><ResponsiveContainer><PieChart><Pie data={expPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}>{expPie.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}</Pie><Tooltip formatter={(v)=>rupiah(v)}/><Legend wrapperStyle={{ fontSize: 10 }}/></PieChart></ResponsiveContainer></div>}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Ringkasan Detail</h3>
+        <div className="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Tanggal Pindahan</span><span className="font-medium text-slate-800 dark:text-slate-100">{new Date(data.moveDate).toLocaleDateString("id-ID", { day:'numeric', month:'long', year:'numeric' })}</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Progress Packing</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.items.length ? Math.round(packed/data.items.length*100) : 0}%</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Total Budget</span><span className="font-medium text-slate-800 dark:text-slate-100">{rupiah(data.totalBudget)}</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Sisa Budget</span><span className="font-medium text-slate-800 dark:text-slate-100">{rupiah(data.totalBudget - used)}</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Task Selesai</span><span className="font-medium text-slate-800 dark:text-slate-100">{tasksDone}/{data.tasks.length}</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Total Pengeluaran</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.expenses.length} transaksi</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ ERROR BOUNDARY ============================ */
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Terjadi Kesalahan</h1>
+          <p className="text-sm text-slate-500 mt-2 max-w-md">{String(this.state.error)}</p>
+          <button onClick={() => { localStorage.removeItem(STORAGE_KEY); location.reload(); }} className="mt-4 px-4 py-2 bg-primary text-white rounded-lg">Reset Data & Muat Ulang</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ============================ APP SHELL ============================ */
+const NAV = [
+  { id: "dashboard", label: "Dashboard", icon: Icons.dashboard },
+  { id: "checklist", label: "Checklist Barang", icon: Icons.checklist },
+  { id: "timeline", label: "Timeline", icon: Icons.timeline },
+  { id: "budget", label: "Budget Planner", icon: Icons.budget },
+  { id: "priority", label: "Prioritas Packing", icon: Icons.priority },
+  { id: "volume", label: "Estimasi Volume", icon: Icons.volume },
+  { id: "room", label: "Room Planner", icon: Icons.room },
+  { id: "moveday", label: "Move Day", icon: Icons.moveday },
+  { id: "report", label: "Laporan Akhir", icon: Icons.report },
+];
+
+function App() {
+  const [loading, setLoading] = useState(true);
+  const [data, setDataRaw] = useState(loadData);
+  const [page, setPage] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const setData = (d) => setDataRaw(d);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+  }, [data]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", !!data.darkMode);
+  }, [data.darkMode]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white mb-4 animate-pop"><Icon d={Icons.truck} className="w-8 h-8"/></div>
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" style={{ borderWidth: 3 }}></div>
+        <p className="text-sm text-slate-400 mt-4">Memuat MoveEasy…</p>
+      </div>
+    );
+  }
+
+  const pages = { dashboard: Dashboard, checklist: Checklist, timeline: Timeline, budget: Budget, priority: Priority, volume: Volume, room: RoomPlanner, moveday: MoveDay, report: Report };
+  const Page = pages[page];
+
+  return (
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      {/* sidebar */}
+      <aside className={`fixed lg:static z-40 inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 no-print flex flex-col`}>
+        <div className="p-5 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white"><Icon d={Icons.truck} className="w-6 h-6"/></div>
+          <div><p className="font-bold text-lg leading-tight">MoveEasy</p><p className="text-xs text-slate-400">Asisten Pindahan</p></div>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {NAV.map((n) => (
+            <button key={n.id} onClick={() => { setPage(n.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${page === n.id ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+              <Icon d={n.icon} className="w-5 h-5 shrink-0" />{n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+          <button onClick={() => setData({ ...data, darkMode: !data.darkMode })} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <Icon d={data.darkMode ? Icons.sun : Icons.moon} className="w-5 h-5" />{data.darkMode ? "Mode Terang" : "Mode Gelap"}
+          </button>
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden no-print" onClick={() => setSidebarOpen(false)}></div>}
+
+      {/* main */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="lg:hidden sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between no-print">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={Icons.menu} className="w-5 h-5"/></button>
+          <span className="font-bold">MoveEasy</span>
+          <button onClick={() => setData({ ...data, darkMode: !data.darkMode })} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={data.darkMode ? Icons.sun : Icons.moon} className="w-5 h-5"/></button>
+        </header>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+          <Page data={data} setData={setData} />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<ErrorBoundary><ToastProvider><App /></ToastProvider></ErrorBoundary>);
+</script>
+
+<script>
+/* Bootstrap: compile the JSX source with the CLASSIC runtime (React.createElement),
+   which works in the browser without any module system, then execute it. */
+(function () {
+  function boot() {
+    try {
+      var src = document.getElementById("app-source").textContent;
+      var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+      (0, eval)(out);
+    } catch (e) {
+      document.getElementById("root").innerHTML =
+        '<div style="padding:2rem;font-family:sans-serif;color:#b91c1c">'
+        + '<h2>Gagal memuat aplikasi</h2><pre style="white-space:pre-wrap">'
+        + String(e && (e.stack || e.message)) + '</pre></div>';
+      console.error(e);
+    }
+  }
+  if (window.Babel) boot();
+  else window.addEventListener("load", boot);
+})();
+</script>
+</body>
+</html>
