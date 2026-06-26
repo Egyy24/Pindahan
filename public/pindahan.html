@@ -43,10 +43,189 @@
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
   .dark ::-webkit-scrollbar-thumb { background: #475569; }
   .arabic { font-family: 'Amiri', serif; direction: rtl; line-height: 2.6rem; }
+
+  /* ===== PERBAIKAN PRINT ===== */
   @media print {
+    /* Sembunyikan elemen non-print */
     .no-print { display: none !important; }
-    body { background: #fff !important; }
-    .print-block { break-inside: avoid; }
+
+    /* Reset background & warna */
+    body {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      font-size: 11pt !important;
+      line-height: 1.5 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Aturan halaman */
+    @page {
+      size: A4 portrait;
+      margin: 15mm 12mm 15mm 12mm;
+    }
+
+    /* Pastikan semua konten terlihat dan tidak terpotong */
+    #root, .min-h-screen, .flex-1, main {
+      display: block !important;
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      background: #ffffff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 100% !important;
+    }
+
+    /* Sidebar disembunyikan */
+    aside, header.lg\\:hidden {
+      display: none !important;
+    }
+
+    /* Main content full width */
+    .flex-1 {
+      margin-left: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Semua card & block agar tidak pecah */
+    .print-block {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      border: 1px solid #e2e8f0 !important;
+      background: #ffffff !important;
+      box-shadow: none !important;
+      margin-bottom: 12pt !important;
+      padding: 10pt !important;
+      border-radius: 6pt !important;
+      overflow: visible !important;
+    }
+
+    /* Grid layout untuk print - jadi 2 kolom */
+    .grid {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 8pt !important;
+    }
+    .grid > * {
+      flex: 1 1 calc(50% - 8pt) !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+    /* Tapi untuk grid 4 kolom di report */
+    .grid-cols-4, .grid-cols-2 {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 8pt !important;
+    }
+    .grid-cols-4 > * {
+      flex: 1 1 calc(25% - 8pt) !important;
+      min-width: 0 !important;
+    }
+    .grid-cols-2 > * {
+      flex: 1 1 calc(50% - 8pt) !important;
+      min-width: 0 !important;
+    }
+    /* Khusus untuk lg:grid-cols-2 di report -> 1 kolom saat print biar muat */
+    .lg\\:grid-cols-2 {
+      display: block !important;
+    }
+    .lg\\:grid-cols-2 > * {
+      display: block !important;
+      width: 100% !important;
+      margin-bottom: 10pt !important;
+    }
+
+    /* Chart container */
+    .recharts-wrapper, .recharts-surface {
+      max-width: 100% !important;
+      height: auto !important;
+      min-height: 160pt !important;
+    }
+    .recharts-responsive-container {
+      width: 100% !important;
+      height: auto !important;
+      min-height: 160pt !important;
+    }
+    /* Pastikan SVG tidak overflow */
+    svg {
+      max-width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Table / detail rows */
+    .border-b {
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    /* Spacing */
+    .mb-5, .mb-4, .mb-3, .mt-5, .mt-4 {
+      margin-bottom: 8pt !important;
+      margin-top: 8pt !important;
+    }
+
+    /* Title */
+    h1, h2, h3, .font-bold {
+      color: #0f172a !important;
+    }
+
+    /* Pastikan tidak ada overflow tersembunyi */
+    .overflow-x-auto, .overflow-hidden {
+      overflow: visible !important;
+    }
+
+    /* Kiblat & denah tidak kepotong */
+    .relative {
+      position: relative !important;
+    }
+
+    /* Jurnal textarea jadi plain text */
+    textarea {
+      border: 1px solid #cbd5e1 !important;
+      background: #f8fafc !important;
+      color: #1e293b !important;
+      resize: none !important;
+      min-height: 60pt !important;
+    }
+
+    /* Footer / doa penutup */
+    .mt-5 {
+      margin-top: 12pt !important;
+    }
+
+    /* Pastikan .arabic tidak overflow */
+    .arabic {
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+
+    /* Force semua konten terlihat */
+    * {
+      overflow: visible !important;
+    }
+
+    /* Page break sebelum section utama laporan */
+    .report-page {
+      page-break-before: auto !important;
+      page-break-after: avoid !important;
+    }
+
+    /* Pastikan card value tidak terpotong */
+    .text-2xl, .text-xl {
+      font-size: 14pt !important;
+    }
+    .text-5xl {
+      font-size: 20pt !important;
+    }
+  }
+
+  /* Tambahan untuk layar kecil */
+  @media screen and (max-width: 640px) {
+    .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+    .grid-cols-4 { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -67,8 +246,6 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-/* Data awal SENGAJA KOSONG. Pengguna mengisi datanya sendiri lewat tiap fitur.
-   Lihat halaman "Panduan" untuk tutorial langkah demi langkah. */
 const SAMPLE = {
   moveDate: "",
   totalBudget: 0,
@@ -103,7 +280,11 @@ const CHART_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#E
 const STATUS_OPTS = ["Belum", "Sedang", "Selesai"];
 
 const rupiah = (n) => "Rp " + (Number(n) || 0).toLocaleString("id-ID");
-const daysBetween = (d) => Math.ceil((new Date(d) - new Date(todayISO())) / 86400000);
+const daysBetween = (d) => {
+  if (!d) return null;
+  const diff = (new Date(d) - new Date(todayISO())) / 86400000;
+  return Math.ceil(diff);
+};
 
 /* ============================ ICONS ============================ */
 const Icon = ({ d, className = "w-5 h-5" }) => (
@@ -251,7 +432,6 @@ const SectionTitle = ({ title, desc, action }) => (
   </div>
 );
 
-/* confirm helper */
 function useConfirm() {
   return (msg) => window.confirm(msg);
 }
@@ -278,7 +458,7 @@ function Dashboard({ data, setData }) {
   if (highPending > 0) insights.push({ t: `Masih ada ${highPending} barang prioritas tinggi belum dipacking.`, c: "red" });
   if (remaining < 0) insights.push({ t: `Budget over Rp ${Math.abs(remaining).toLocaleString("id-ID")}! Cek pengeluaran.`, c: "red" });
   else insights.push({ t: `Sisa budget ${rupiah(remaining)} dari total ${rupiah(data.totalBudget)}.`, c: "primary" });
-  if (daysLeft <= 7 && daysLeft >= 0) insights.push({ t: `Tinggal ${daysLeft} hari menuju pindahan. Pastikan semua siap!`, c: "orange" });
+  if (daysLeft !== null && daysLeft <= 7 && daysLeft >= 0) insights.push({ t: `Tinggal ${daysLeft} hari menuju pindahan. Pastikan semua siap!`, c: "orange" });
 
   const insColor = { secondary: "bg-secondary/10 text-secondary border-secondary/30", orange: "bg-orange-500/10 text-orange-600 border-orange-500/30", red: "bg-red-500/10 text-red-600 border-red-500/30", primary: "bg-primary/10 text-primary border-primary/30" };
 
@@ -323,7 +503,9 @@ function Dashboard({ data, setData }) {
               <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500"><Icon d={Icons.clock} className="w-5 h-5"/></div>
               <div>
                 <p className="text-sm text-slate-500">Menuju Pindahan</p>
-                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{!data.moveDate ? "—" : daysLeft >= 0 ? `${daysLeft} hari` : "Lewat"}</p>
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                  {!data.moveDate ? "—" : daysLeft === null ? "—" : daysLeft >= 0 ? `${daysLeft} hari` : "Lewat"}
+                </p>
               </div>
             </div>
             <p className="text-xs text-slate-400">{!data.moveDate ? "Atur tanggal pindah di Budget Planner" : "Target: " + new Date(data.moveDate).toLocaleDateString("id-ID", { day:'numeric', month:'long', year:'numeric' })}</p>
@@ -337,7 +519,7 @@ function Dashboard({ data, setData }) {
                 return (
                   <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t.name}</span>
-                    <span className={`text-xs font-semibold ${dl < 0 ? 'text-red-500' : dl < 3 ? 'text-orange-500' : 'text-slate-400'}`}>{dl < 0 ? `${-dl}h lalu` : `${dl}h lagi`}</span>
+                    <span className={`text-xs font-semibold ${dl === null ? 'text-slate-400' : dl < 0 ? 'text-red-500' : dl < 3 ? 'text-orange-500' : 'text-slate-400'}`}>{dl === null ? '-' : `${dl}h lagi`}</span>
                   </div>
                 );
               })}</div>}
@@ -500,7 +682,6 @@ function Timeline({ data, setData }) {
   const statusColor = { "Belum": "bg-slate-300 dark:bg-slate-600", "Sedang": "bg-orange-400", "Selesai": "bg-secondary" };
   const statusBadge = { "Belum": "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", "Sedang": "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300", "Selesai": "bg-emerald-100 text-secondary dark:bg-emerald-900/40" };
 
-  // mini calendar (current month)
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
   const firstDay = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -524,7 +705,7 @@ function Timeline({ data, setData }) {
               <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-700"></div>
               {sorted.map((t) => {
                 const dl = daysBetween(t.deadline);
-                const warn = t.status !== "Selesai" && dl < 0 ? "text-red-500" : t.status !== "Selesai" && dl < 3 ? "text-orange-500" : "text-slate-400";
+                const warn = t.status !== "Selesai" ? (dl === null ? 'text-slate-400' : dl < 0 ? 'text-red-500' : dl < 3 ? 'text-orange-500' : 'text-slate-400') : 'text-slate-400';
                 return (
                   <div key={t.id} className="relative mb-5 last:mb-0 animate-fadeIn">
                     <div className={`absolute -left-[26px] top-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${statusColor[t.status]}`}></div>
@@ -534,7 +715,7 @@ function Timeline({ data, setData }) {
                           <p className="font-semibold text-slate-800 dark:text-slate-100">{t.name}</p>
                           <button onClick={() => cycle(t)} className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge[t.status]}`}>{t.status}</button>
                         </div>
-                        <p className={`text-xs mt-0.5 font-medium ${warn}`}>{new Date(t.deadline).toLocaleDateString("id-ID", { day:'numeric', month:'short' })} · {dl < 0 ? `${-dl} hari lalu` : `${dl} hari lagi`}</p>
+                        <p className={`text-xs mt-0.5 font-medium ${warn}`}>{new Date(t.deadline).toLocaleDateString("id-ID", { day:'numeric', month:'short' })} · {dl === null ? '-' : `${dl} hari lagi`}</p>
                         {t.note && <p className="text-xs text-slate-400 mt-1">{t.note}</p>}
                       </div>
                       <div className="flex gap-1">
@@ -592,6 +773,7 @@ function Budget({ data, setData }) {
   const [editing, setEditing] = useState(null);
   const [budgetModal, setBudgetModal] = useState(false);
   const [budgetInput, setBudgetInput] = useState(data.totalBudget);
+  const [moveDateInput, setMoveDateInput] = useState(data.moveDate || "");
   const blank = { name: "", category: "Transportasi", amount: "", date: todayISO(), note: "" };
   const [form, setForm] = useState(blank);
 
@@ -607,7 +789,16 @@ function Budget({ data, setData }) {
     setModal(false);
   };
   const remove = (id) => { if (confirm("Hapus pengeluaran ini?")) { setData({ ...data, expenses: data.expenses.filter((x) => x.id !== id) }); toast("Dihapus", "info"); } };
-  const saveBudget = (e) => { e.preventDefault(); setData({ ...data, totalBudget: Number(budgetInput) }); setBudgetModal(false); toast("Budget diperbarui"); };
+  const saveBudget = (e) => {
+    e.preventDefault();
+    setData({
+      ...data,
+      totalBudget: Number(budgetInput),
+      moveDate: moveDateInput,
+    });
+    setBudgetModal(false);
+    toast("Budget dan tanggal pindahan diperbarui");
+  };
 
   const pieData = EXPENSE_CATS.map((c) => ({ name: c, value: data.expenses.filter((e) => e.category === c).reduce((s, e) => s + Number(e.amount), 0) })).filter((d) => d.value > 0);
   const byDate = {};
@@ -617,7 +808,11 @@ function Budget({ data, setData }) {
   return (
     <div>
       <SectionTitle title="Budget Planner" desc="Pantau pengeluaran pindahan"
-        action={<div className="flex gap-2"><Btn variant="ghost" onClick={() => { setBudgetInput(data.totalBudget); setBudgetModal(true); }}>Set Budget</Btn><Btn onClick={() => open(null)}><Icon d={Icons.plus} className="w-4 h-4"/>Tambah</Btn></div>} />
+        action={<div className="flex gap-2"><Btn variant="ghost" onClick={() => {
+          setBudgetInput(data.totalBudget);
+          setMoveDateInput(data.moveDate || "");
+          setBudgetModal(true);
+        }}>Set Budget</Btn><Btn onClick={() => open(null)}><Icon d={Icons.plus} className="w-4 h-4"/>Tambah</Btn></div>} />
 
       <div className="grid md:grid-cols-3 gap-4 mb-5">
         <Card title="Total Budget" value={rupiah(data.totalBudget)} icon={Icons.wallet} color="primary" />
@@ -684,9 +879,10 @@ function Budget({ data, setData }) {
         </form>
       </Modal>
 
-      <Modal open={budgetModal} onClose={() => setBudgetModal(false)} title="Set Total Budget">
+      <Modal open={budgetModal} onClose={() => setBudgetModal(false)} title="Set Total Budget & Tanggal Pindah">
         <form onSubmit={saveBudget}>
           <Field label="Total Budget (Rp)"><TextInput type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} /></Field>
+          <Field label="Tanggal Pindahan"><TextInput type="date" value={moveDateInput} onChange={(e) => setMoveDateInput(e.target.value)} /></Field>
           <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setBudgetModal(false)}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
         </form>
       </Modal>
@@ -742,7 +938,6 @@ function Volume({ data, setData }) {
   const toast = useToast();
   const v = data.volume;
   const set = (k, val) => setData({ ...data, volume: { ...v, [k]: Number(val) || 0 } });
-  // volume m3 estimates
   const vol = v.kardusKecil * 0.03 + v.kardusSedang * 0.06 + v.kardusBesar * 0.12 + v.kasur * 1.2 + v.lemari * 0.9 + v.meja * 0.4 + v.sofa * 1.0 + v.elektronikBesar * 0.3;
   let rec, icon, cost;
   if (vol < 1) { rec = "Motor / Ojek"; icon = "🏍️"; cost = "Rp 50.000 - 150.000"; }
@@ -984,6 +1179,12 @@ function Report({ data }) {
   useEffect(() => {
     try { localStorage.setItem(JURNAL_KEY, jurnal); } catch (e) {}
   }, [jurnal]);
+  const kiblat = (() => { try { return localStorage.getItem(KIBLAT_KEY) || ""; } catch (e) { return ""; } })();
+  const layout = data.roomLayout || {};
+  const hasLayout = Object.keys(layout).length > 0;
+  const GRID_R = 10;
+  const kiblatPosR = { "Utara": "top-0 left-1/2 -translate-x-1/2", "Selatan": "bottom-0 left-1/2 -translate-x-1/2", "Timur": "right-0 top-1/2 -translate-y-1/2", "Barat": "left-0 top-1/2 -translate-y-1/2" };
+  const kiblatRotR = { "Utara": "-rotate-90", "Selatan": "rotate-90", "Timur": "rotate-0", "Barat": "rotate-180" };
   const packed = data.items.filter((i) => i.packed).length;
   const used = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
   const daysLeft = daysBetween(data.moveDate);
@@ -1002,7 +1203,7 @@ function Report({ data }) {
   };
 
   return (
-    <div>
+    <div className="report-page">
       <SectionTitle title="Laporan Akhir" desc="Ringkasan lengkap persiapan pindahan"
         action={<div className="flex gap-2 no-print"><Btn variant="ghost" onClick={() => window.print()}><Icon d={Icons.print} className="w-4 h-4"/>Print</Btn><Btn variant="secondary" onClick={exportJSON}><Icon d={Icons.download} className="w-4 h-4"/>Export JSON</Btn></div>} />
 
@@ -1010,31 +1211,86 @@ function Report({ data }) {
         <Card title="Total Barang" value={data.items.length} icon={Icons.box} color="primary" />
         <Card title="Sudah Packing" value={`${packed}/${data.items.length}`} icon={Icons.checklist} color="secondary" />
         <Card title="Total Biaya" value={rupiah(used)} icon={Icons.wallet} color="orange" />
-        <Card title="Waktu Persiapan" value={!data.moveDate ? "—" : daysLeft >= 0 ? `${daysLeft} hari` : "Selesai"} icon={Icons.clock} color="purple" />
+        <Card title="Waktu Persiapan" value={!data.moveDate ? "Belum diatur" : daysLeft === null ? "—" : daysLeft >= 0 ? `${daysLeft} hari` : "Selesai"} icon={Icons.clock} color="purple" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
           <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Barang per Kategori</h3>
-          <div style={{ width: "100%", height: 240 }}><ResponsiveContainer><BarChart data={catData}><CartesianGrid strokeDasharray="3 3" opacity={0.3}/><XAxis dataKey="name" tick={{ fontSize: 11 }}/><YAxis allowDecimals={false} tick={{ fontSize: 11 }}/><Tooltip/><Bar dataKey="jumlah" fill="#3B82F6" radius={[6,6,0,0]}/></BarChart></ResponsiveContainer></div>
+          <div style={{ width: "100%", height: 240, minHeight: "180px" }}>
+            <ResponsiveContainer>
+              <BarChart data={catData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="jumlah" fill="#3B82F6" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
           <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Pengeluaran per Kategori</h3>
           {expPie.length === 0 ? <EmptyState msg="Belum ada data"/> :
-          <div style={{ width: "100%", height: 240 }}><ResponsiveContainer><PieChart><Pie data={expPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}>{expPie.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}</Pie><Tooltip formatter={(v)=>rupiah(v)}/><Legend wrapperStyle={{ fontSize: 10 }}/></PieChart></ResponsiveContainer></div>}
+          <div style={{ width: "100%", height: 240, minHeight: "180px" }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={expPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}>
+                  {expPie.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}
+                </Pie>
+                <Tooltip formatter={(v)=>rupiah(v)}/>
+                <Legend wrapperStyle={{ fontSize: 10 }}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>}
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Ringkasan Detail</h3>
         <div className="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Tanggal Pindahan</span><span className="font-medium text-slate-800 dark:text-slate-100">{new Date(data.moveDate).toLocaleDateString("id-ID", { day:'numeric', month:'long', year:'numeric' })}</span></div>
+          <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Tanggal Pindahan</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.moveDate ? new Date(data.moveDate).toLocaleDateString("id-ID", { day:'numeric', month:'long', year:'numeric' }) : "Belum diatur"}</span></div>
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Progress Packing</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.items.length ? Math.round(packed/data.items.length*100) : 0}%</span></div>
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Total Budget</span><span className="font-medium text-slate-800 dark:text-slate-100">{rupiah(data.totalBudget)}</span></div>
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Sisa Budget</span><span className="font-medium text-slate-800 dark:text-slate-100">{rupiah(data.totalBudget - used)}</span></div>
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Task Selesai</span><span className="font-medium text-slate-800 dark:text-slate-100">{tasksDone}/{data.tasks.length}</span></div>
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Total Pengeluaran</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.expenses.length} transaksi</span></div>
         </div>
+      </div>
+
+      <div className="mt-5 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 print-block">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">Denah Tata Letak Ruangan</h3>
+        <p className="text-sm text-slate-400 mb-4">Rencana penempatan furniture di rumah baru{kiblat ? ` (arah kiblat: ${kiblat})` : ""}</p>
+        {!hasLayout ? <EmptyState msg="Belum ada denah. Atur tata letak di menu Room Planner." /> :
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          <div className="relative inline-block mx-auto lg:mx-0">
+            {kiblat && (
+              <div className={`absolute z-10 flex flex-col items-center text-emerald-600 dark:text-emerald-400 ${kiblatPosR[kiblat]}`} title={`Arah Kiblat: ${kiblat}`}>
+                <Icon d={Icons.arrowRight} className={`w-5 h-5 ${kiblatRotR[kiblat]}`} />
+                <span className="text-[9px] font-bold leading-none">🕋 Kiblat</span>
+              </div>
+            )}
+            <div className="inline-grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_R}, minmax(24px, 1fr))`, padding: kiblat ? '1.75rem' : '0' }}>
+              {Array(GRID_R).fill(0).map((_, r) => Array(GRID_R).fill(0).map((_, c) => {
+                const f = layout[`${r}-${c}`];
+                return (
+                  <div key={`${r}-${c}`} className="aspect-square rounded-sm border border-slate-100 dark:border-slate-800 flex items-center justify-center"
+                    style={f ? { background: FURNITURE[f].color } : {}} title={f || ""}>
+                    {f && <span className="text-[10px] text-white font-bold">{FURNITURE[f].emoji || f[0]}</span>}
+                  </div>
+                );
+              }))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {Object.keys(FURNITURE).map((name) => (
+              <div key={name} className="flex items-center gap-2 text-sm">
+                <span className="w-4 h-4 rounded-sm shrink-0" style={{ background: FURNITURE[name].color }}></span>
+                <span className="text-slate-600 dark:text-slate-300">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>}
       </div>
 
       <div className="mt-5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-800 print-block">
@@ -1346,7 +1602,6 @@ function Guide({ data, setData }) {
     <div>
       <SectionTitle title="Panduan Penggunaan" desc="Cara memakai Pindahan dari awal sampai selesai pindahan" />
 
-      {/* Welcome banner */}
       <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 text-white mb-6 animate-fadeIn">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-white/20 shrink-0"><Icon d={Icons.rocket} className="w-7 h-7" /></div>
@@ -1359,7 +1614,6 @@ function Guide({ data, setData }) {
         </div>
       </div>
 
-      {/* Steps */}
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         {steps.map((s, i) => (
           <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 animate-fadeIn">
@@ -1380,7 +1634,6 @@ function Guide({ data, setData }) {
         ))}
       </div>
 
-      {/* FAQ */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Pertanyaan Umum</h3>
         <div className="space-y-3">
@@ -1397,7 +1650,6 @@ function Guide({ data, setData }) {
         </div>
       </div>
 
-      {/* Reset */}
       <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5">
         <h3 className="font-bold text-red-600 dark:text-red-400 mb-1">Reset Data</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Mulai ulang dari awal dengan menghapus seluruh data yang sudah dimasukkan.</p>
@@ -1459,10 +1711,9 @@ function App() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* sidebar */}
       <aside className={`fixed lg:static z-40 inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 no-print flex flex-col`}>
         <div className="p-5 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white"><Icon d={Icons.truck} className="w-6 h-6"/></div>
+          <img src="/logo.png" alt="Logo Pindahan" className="w-10 h-10 rounded-xl object-contain bg-white" />
           <div><p className="font-bold text-lg leading-tight">Pindahan</p><p className="text-xs text-slate-400">Asisten Pindahan</p></div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -1481,11 +1732,10 @@ function App() {
 
       {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden no-print" onClick={() => setSidebarOpen(false)}></div>}
 
-      {/* main */}
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="lg:hidden sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between no-print">
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={Icons.menu} className="w-5 h-5"/></button>
-          <span className="font-bold">Pindahan</span>
+          <span className="flex items-center gap-2 font-bold"><img src="/logo.png" alt="Logo Pindahan" className="w-7 h-7 rounded-lg object-contain" />Pindahan</span>
           <button onClick={() => setData({ ...data, darkMode: !data.darkMode })} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={data.darkMode ? Icons.sun : Icons.moon} className="w-5 h-5"/></button>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
