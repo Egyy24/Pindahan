@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MoveEasy - Asisten Pindahan Rumah</title>
+<title>Pindahan - Asisten Pindahan Rumah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
@@ -39,6 +42,7 @@
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
   .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  .arabic { font-family: 'Amiri', serif; direction: rtl; line-height: 2.6rem; }
   @media print {
     .no-print { display: none !important; }
     body { background: #fff !important; }
@@ -132,6 +136,10 @@ const Icons = {
   help: <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
   arrowRight: <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
   rocket: <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></>,
+  mosque: <><path d="M4 21V11"/><path d="M20 21V11"/><path d="M4 11c0-3 4-4 4-6 0 2 4 3 4 6"/><path d="M12 11c0-3 4-4 4-6 0 2 4 3 4 6"/><path d="M2 21h20"/><path d="M9 21v-4a3 3 0 0 1 6 0v4"/></>,
+  hands: <><path d="M11 11V6a1.5 1.5 0 0 0-3 0v6"/><path d="M13 11V6a1.5 1.5 0 0 1 3 0v6"/><path d="M8 12c-1 0-3 1-3 4 0 3 2 6 7 6s7-3 7-6c0-3-2-4-3-4"/></>,
+  book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+  compass: <><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>,
 };
 
 /* ============================ TOAST ============================ */
@@ -793,13 +801,32 @@ const FURNITURE = {
   "Sofa": { w: 2, h: 1, color: "#8B5CF6" },
   "Rak": { w: 1, h: 2, color: "#EC4899" },
   "Meja Makan": { w: 2, h: 2, color: "#14B8A6" },
+  "Musholla": { w: 1, h: 1, color: "#10B981", emoji: "🕌" },
 };
+const KIBLAT_KEY = "moveeasy_kiblat";
 function RoomPlanner({ data, setData }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [selected, setSelected] = useState("Kasur");
   const [layout, setLayout] = useState(data.roomLayout || {});
+  const [kiblat, setKiblat] = useState(() => {
+    try { return localStorage.getItem(KIBLAT_KEY) || ""; } catch (e) { return ""; }
+  });
   const GRID = 10;
+
+  const setKiblatDir = (dir) => {
+    setKiblat(dir);
+    try { localStorage.setItem(KIBLAT_KEY, dir); } catch (e) {}
+    toast(dir ? `Arah kiblat ditandai: ${dir}` : "Penanda kiblat dihapus", "info");
+  };
+  const KIBLAT_OPTS = ["Utara", "Selatan", "Timur", "Barat"];
+  const kiblatPos = {
+    "Utara": "top-1 left-1/2 -translate-x-1/2",
+    "Selatan": "bottom-1 left-1/2 -translate-x-1/2",
+    "Timur": "right-1 top-1/2 -translate-y-1/2",
+    "Barat": "left-1 top-1/2 -translate-y-1/2",
+  };
+  const kiblatRotate = { "Utara": "-rotate-90", "Selatan": "rotate-90", "Timur": "rotate-0", "Barat": "rotate-180" };
 
   const place = (r, c) => {
     const key = `${r}-${c}`;
@@ -829,19 +856,42 @@ function RoomPlanner({ data, setData }) {
             ))}
           </div>
           <p className="text-xs text-slate-400 mt-3">Klik sel untuk menempatkan/menghapus furniture yang dipilih.</p>
+
+          <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-800">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon d={Icons.compass} className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <h3 className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">Penanda Arah Kiblat</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {KIBLAT_OPTS.map((d) => (
+                <button key={d} onClick={() => setKiblatDir(kiblat === d ? "" : d)} className={`text-sm font-medium px-3 py-2 rounded-lg border transition ${kiblat === d ? 'bg-emerald-500 text-white border-emerald-500' : 'border-emerald-200 dark:border-emerald-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`}>
+                  {kiblat === d ? '🕋 ' : ''}{d}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 italic mt-3">Posisikan musholla menghadap ke arah kiblat.</p>
+          </div>
         </div>
 
         <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 overflow-x-auto">
-          <div className="inline-grid gap-0.5 mx-auto" style={{ gridTemplateColumns: `repeat(${GRID}, minmax(28px, 1fr))` }}>
-            {Array(GRID).fill(0).map((_, r) => Array(GRID).fill(0).map((_, c) => {
-              const key = `${r}-${c}`; const f = layout[key];
-              return (
-                <button key={key} onClick={() => place(r, c)} className="aspect-square rounded-sm border border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center"
-                  style={f ? { background: FURNITURE[f].color } : {}} title={f || ""}>
-                  {f && <span className="text-[8px] text-white font-bold">{f[0]}</span>}
-                </button>
-              );
-            }))}
+          <div className="relative inline-block mx-auto">
+            {kiblat && (
+              <div className={`absolute z-10 flex flex-col items-center text-emerald-600 dark:text-emerald-400 ${kiblatPos[kiblat]}`} title={`Arah Kiblat: ${kiblat}`}>
+                <Icon d={Icons.arrowRight} className={`w-5 h-5 ${kiblatRotate[kiblat]}`} />
+                <span className="text-[9px] font-bold leading-none">🕋 Kiblat</span>
+              </div>
+            )}
+            <div className="inline-grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID}, minmax(28px, 1fr))`, padding: kiblat ? '1.75rem' : '0' }}>
+              {Array(GRID).fill(0).map((_, r) => Array(GRID).fill(0).map((_, c) => {
+                const key = `${r}-${c}`; const f = layout[key];
+                return (
+                  <button key={key} onClick={() => place(r, c)} className="aspect-square rounded-sm border border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                    style={f ? { background: FURNITURE[f].color } : {}} title={f || ""}>
+                    {f && <span className="text-[10px] text-white font-bold">{FURNITURE[f].emoji || f[0]}</span>}
+                  </button>
+                );
+              }))}
+            </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             {Object.entries(FURNITURE).map(([name, f]) => (
@@ -924,8 +974,16 @@ function MoveDay({ data, setData }) {
 }
 
 /* ---- LAPORAN AKHIR ---- */
+const JURNAL_KEY = "moveeasy_jurnal";
+
 function Report({ data }) {
   const toast = useToast();
+  const [jurnal, setJurnal] = useState(() => {
+    try { return localStorage.getItem(JURNAL_KEY) || ""; } catch (e) { return ""; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(JURNAL_KEY, jurnal); } catch (e) {}
+  }, [jurnal]);
   const packed = data.items.filter((i) => i.packed).length;
   const used = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
   const daysLeft = daysBetween(data.moveDate);
@@ -978,6 +1036,227 @@ function Report({ data }) {
           <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5"><span className="text-slate-500">Total Pengeluaran</span><span className="font-medium text-slate-800 dark:text-slate-100">{data.expenses.length} transaksi</span></div>
         </div>
       </div>
+
+      <div className="mt-5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-800 print-block">
+        <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-4">📖 Refleksi Hijrah</h3>
+
+        <label className="block mb-4">
+          <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-1.5 block">Jurnal Perjalanan</span>
+          <textarea value={jurnal} onChange={(e) => setJurnal(e.target.value)} rows={4} placeholder="Tulis refleksi perjalanan hijrahmu…"
+            className="w-full px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition resize-y" />
+        </label>
+
+        <div className="bg-white/60 dark:bg-slate-900/40 rounded-xl p-5 text-center border border-emerald-200 dark:border-emerald-800">
+          <p className="arabic text-2xl text-slate-800 dark:text-slate-100 mb-3">وَاللَّهُ جَعَلَ لَكُم مِّن بُيُوتِكُمْ سَكَنًا</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{'"Dan Allah menjadikan bagimu rumah-rumahmu sebagai tempat tinggal."'}</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">QS. An-Nahl: 80</p>
+        </div>
+
+        <p className="text-sm text-center italic text-slate-500 dark:text-slate-400 mt-4">
+          Semoga Allah memberkahi rumah barumu dan menjadikannya tempat yang penuh ketenangan, keberkahan, dan ketaatan. 🤲
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---- DOA & DZIKIR HIJRAH ---- */
+const DOA_LIST = [
+  {
+    id: "d1",
+    judul: "Doa Keluar Rumah Lama",
+    arab: "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+    latin: "Bismillaahi tawakkaltu 'alallaahi wa laa haula wa laa quwwata illaa billaah.",
+    arti: "Dengan nama Allah, aku bertawakal kepada Allah. Tidak ada daya dan kekuatan kecuali dengan pertolongan Allah.",
+    sumber: "HR. Abu Dawud & Tirmidzi",
+  },
+  {
+    id: "d2",
+    judul: "Doa Dalam Perjalanan",
+    arab: "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ",
+    latin: "Subhaanalladzii sakhkhara lanaa haadzaa wa maa kunnaa lahuu muqriniin, wa innaa ilaa rabbinaa lamunqalibuun.",
+    arti: "Maha Suci Allah yang telah menundukkan semua ini bagi kami, padahal kami sebelumnya tidak mampu menguasainya, dan sesungguhnya kami akan kembali kepada Tuhan kami.",
+    sumber: "QS. Az-Zukhruf: 13-14",
+  },
+  {
+    id: "d3",
+    judul: "Doa Masuk Rumah Baru",
+    arab: "اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَوْلِجِ وَخَيْرَ الْمَخْرَجِ بِسْمِ اللَّهِ وَلَجْنَا وَبِسْمِ اللَّهِ خَرَجْنَا وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا",
+    latin: "Allaahumma innii as-aluka khairal mauliji wa khairal makhraji, bismillaahi walajnaa wa bismillaahi kharajnaa wa 'alallaahi rabbinaa tawakkalnaa.",
+    arti: "Ya Allah, aku memohon kepada-Mu kebaikan tempat masuk dan kebaikan tempat keluar. Dengan nama Allah kami masuk, dengan nama Allah kami keluar, dan kepada Allah Tuhan kami, kami bertawakal.",
+    sumber: "HR. Abu Dawud",
+  },
+  {
+    id: "d4",
+    judul: "Doa Memohon Keberkahan Rumah",
+    arab: "رَبِّ أَنْزِلْنِي مُنْزَلًا مُبَارَكًا وَأَنْتَ خَيْرُ الْمُنْزِلِينَ",
+    latin: "Rabbi anzilnii munzalan mubaarakan wa anta khairul munziliin.",
+    arti: "Ya Tuhanku, tempatkanlah aku pada tempat yang diberkahi, dan Engkau adalah sebaik-baik pemberi tempat.",
+    sumber: "QS. Al-Mu'minun: 29",
+  },
+  {
+    id: "d5",
+    judul: "Doa Istikharah Sebelum Memutuskan",
+    arab: "اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ بِعِلْمِكَ وَأَسْتَقْدِرُكَ بِقُدْرَتِكَ وَأَسْأَلُكَ مِنْ فَضْلِكَ الْعَظِيمِ",
+    latin: "Allaahumma innii astakhiiruka bi'ilmika wa astaqdiruka biqudratika wa as-aluka min fadhlikal 'azhiim.",
+    arti: "Ya Allah, aku memohon pilihan yang baik kepada-Mu dengan ilmu-Mu, dan aku memohon kekuatan dengan kekuasaan-Mu, serta aku memohon kepada-Mu sebagian dari karunia-Mu yang agung.",
+    sumber: "HR. Bukhari",
+  },
+  {
+    id: "d6",
+    judul: "Doa Syukur Setelah Pindah",
+    arab: "الْحَمْدُ لِلَّهِ الَّذِي بِنِعْمَتِهِ تَتِمُّ الصَّالِحَاتُ",
+    latin: "Alhamdulillaahilladzii bini'matihi tatimmush shaalihaat.",
+    arti: "Segala puji bagi Allah yang dengan nikmat-Nya segala kebaikan menjadi sempurna.",
+    sumber: "HR. Ibnu Majah",
+  },
+];
+
+const DOA_READ_KEY = "moveeasy_doa_read";
+
+function DoaHijrah({ data, setData }) {
+  const toast = useToast();
+  const [read, setRead] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(DOA_READ_KEY)) || []; } catch (e) { return []; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(DOA_READ_KEY, JSON.stringify(read)); } catch (e) {}
+  }, [read]);
+
+  const toggle = (id) => {
+    setRead((r) => {
+      if (r.includes(id)) { toast("Ditandai belum dibaca", "info"); return r.filter((x) => x !== id); }
+      toast("Alhamdulillah, doa ditandai sudah dibaca");
+      return [...r, id];
+    });
+  };
+
+  const doneCount = DOA_LIST.filter((d) => read.includes(d.id)).length;
+  const pct = Math.round((doneCount / DOA_LIST.length) * 100);
+
+  return (
+    <div>
+      <SectionTitle title="Doa & Dzikir Hijrah" desc="Doa-doa pilihan sepanjang perjalanan pindah rumah" />
+
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-5 mb-5 border border-emerald-200 dark:border-emerald-800">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><Icon d={Icons.hands} className="w-5 h-5" /></div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-emerald-800 dark:text-emerald-300">Progress Doa Dibaca</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{doneCount}/{DOA_LIST.length}</span>
+            </div>
+          </div>
+        </div>
+        <Progress value={pct} color="bg-gradient-to-r from-emerald-500 to-teal-500" />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {DOA_LIST.map((d) => {
+          const isRead = read.includes(d.id);
+          return (
+            <div key={d.id} className={`bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border-2 transition animate-fadeIn print-block ${isRead ? 'border-emerald-400 dark:border-emerald-600' : 'border-slate-100 dark:border-slate-800'}`}>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">{d.judul}</h3>
+                {isRead && <span className="shrink-0 text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Sudah Dibaca</span>}
+              </div>
+              <p className="arabic text-2xl text-right text-slate-800 dark:text-slate-100 mb-3">{d.arab}</p>
+              <p className="text-sm italic text-slate-600 dark:text-slate-300 mb-2">{d.latin}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{d.arti}</p>
+              <p className="text-xs text-slate-400 mb-4">Sumber: {d.sumber}</p>
+              <button onClick={() => toggle(d.id)} className={`w-full text-sm font-medium px-4 py-2 rounded-lg transition no-print ${isRead ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-200' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}>
+                {isRead ? '✓ Sudah Dibaca' : 'Tandai Sudah Dibaca'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---- ADAB BERTETANGGA ---- */
+const ADAB_DEFAULT = [
+  { id: "a1", adab: "Perkenalkan diri dalam 3 hari pertama pindah", dalil: "HR. Bukhari & Muslim" },
+  { id: "a2", adab: "Beri hadiah atau makanan kepada 7 rumah terdekat", dalil: "HR. Muslim" },
+  { id: "a3", adab: "Ketahui nama tetangga kanan, kiri, depan, belakang", dalil: "Adab Islam" },
+  { id: "a4", adab: "Ucapkan salam saat berpapasan", dalil: "HR. Bukhari" },
+  { id: "a5", adab: "Tidak menyakiti tetangga dengan suara keras/bau", dalil: "HR. Bukhari & Muslim" },
+  { id: "a6", adab: "Bantu tetangga jika ada kesulitan", dalil: "HR. Muslim" },
+  { id: "a7", adab: "Jangan terlalu sering bertamu tanpa izin", dalil: "QS. An-Nur: 27" },
+];
+
+const ADAB_KEY = "moveeasy_adab";
+
+function AdabTetangga({ data, setData }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [state, setState] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ADAB_KEY));
+      if (raw && Array.isArray(raw.items)) return raw;
+    } catch (e) {}
+    return { items: ADAB_DEFAULT.map((a) => ({ ...a, done: false })) };
+  });
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ adab: "", dalil: "" });
+
+  useEffect(() => {
+    try { localStorage.setItem(ADAB_KEY, JSON.stringify(state)); } catch (e) {}
+  }, [state]);
+
+  const toggle = (id) => setState((s) => ({ items: s.items.map((i) => i.id === id ? { ...i, done: !i.done } : i) }));
+  const remove = (id) => { if (confirm("Hapus adab ini?")) { setState((s) => ({ items: s.items.filter((i) => i.id !== id) })); toast("Adab dihapus", "info"); } };
+  const add = (e) => {
+    e.preventDefault();
+    if (!form.adab.trim()) return toast("Isi nama adab terlebih dahulu", "error");
+    setState((s) => ({ items: [...s.items, { id: uid(), adab: form.adab, dalil: form.dalil || "Adab Islam", done: false }] }));
+    setForm({ adab: "", dalil: "" });
+    setModal(false);
+    toast("Adab ditambahkan");
+  };
+
+  const done = state.items.filter((i) => i.done).length;
+  const pct = state.items.length ? Math.round((done / state.items.length) * 100) : 0;
+
+  return (
+    <div>
+      <SectionTitle title="Adab Bertetangga" desc="Sunnah & adab Islami menyambut tetangga baru"
+        action={<Btn variant="secondary" onClick={() => setModal(true)}><Icon d={Icons.plus} className="w-4 h-4" />Tambah Adab</Btn>} />
+
+      <div className="grid md:grid-cols-3 gap-4 mb-5">
+        <div className="md:col-span-2 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-5 border border-emerald-200 dark:border-emerald-800">
+          <div className="flex items-center justify-between mb-2"><span className="font-medium text-emerald-800 dark:text-emerald-300">Adab Dilaksanakan</span><span className="font-bold text-emerald-600 dark:text-emerald-400">{pct}%</span></div>
+          <Progress value={pct} color="bg-gradient-to-r from-emerald-500 to-teal-500" />
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-around text-center">
+          <div><p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{done}</p><p className="text-xs text-slate-400">Selesai</p></div>
+          <div><p className="text-2xl font-bold text-orange-500">{state.items.length - done}</p><p className="text-xs text-slate-400">Belum</p></div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+        {state.items.length === 0 ? <EmptyState msg="Belum ada adab. Tambahkan adab pertamamu!" /> :
+          <div className="space-y-2">{state.items.map((i) => (
+            <div key={i.id} className={`flex items-start gap-3 p-3 rounded-xl border transition ${i.done ? 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/20' : 'border-slate-100 dark:border-slate-800'}`}>
+              <input type="checkbox" checked={i.done} onChange={() => toggle(i.id)} className="w-5 h-5 mt-0.5 rounded cursor-pointer" style={{ accentColor: "#10B981" }} />
+              <div className="flex-1 min-w-0">
+                <p className={`font-medium text-slate-800 dark:text-slate-100 ${i.done ? 'line-through text-slate-400' : ''}`}>{i.adab}</p>
+                <p className="text-xs text-slate-400 italic mt-0.5">{i.dalil}</p>
+              </div>
+              <button onClick={() => remove(i.id)} className="p-1.5 text-slate-400 hover:text-red-500 no-print"><Icon d={Icons.trash} className="w-4 h-4" /></button>
+            </div>
+          ))}</div>}
+      </div>
+
+      <Modal open={modal} onClose={() => setModal(false)} title="Tambah Adab">
+        <form onSubmit={add}>
+          <Field label="Adab"><TextInput value={form.adab} onChange={(e) => setForm({ ...form, adab: e.target.value })} placeholder="cth: Menjenguk tetangga yang sakit" /></Field>
+          <Field label="Dalil (opsional)"><TextInput value={form.dalil} onChange={(e) => setForm({ ...form, dalil: e.target.value })} placeholder="cth: HR. Muslim" /></Field>
+          <div className="flex gap-2 justify-end"><Btn type="button" variant="ghost" onClick={() => setModal(false)}>Batal</Btn><Btn type="submit" variant="secondary">Simpan</Btn></div>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -1065,14 +1344,14 @@ function Guide({ data, setData }) {
 
   return (
     <div>
-      <SectionTitle title="Panduan Penggunaan" desc="Cara memakai MoveEasy dari awal sampai selesai pindahan" />
+      <SectionTitle title="Panduan Penggunaan" desc="Cara memakai Pindahan dari awal sampai selesai pindahan" />
 
       {/* Welcome banner */}
       <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 text-white mb-6 animate-fadeIn">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-white/20 shrink-0"><Icon d={Icons.rocket} className="w-7 h-7" /></div>
           <div>
-            <h2 className="text-xl font-bold mb-1">Selamat datang di MoveEasy!</h2>
+            <h2 className="text-xl font-bold mb-1">Selamat datang di Pindahan!</h2>
             <p className="text-sm text-white/90 leading-relaxed max-w-2xl">
               Aplikasi ini membantu kamu merencanakan pindahan rumah secara terstruktur. Datamu masih kosong — ikuti 8 langkah di bawah untuk mulai mengisi data. Semua tersimpan otomatis di perangkat ini.
             </p>
@@ -1131,6 +1410,8 @@ function Guide({ data, setData }) {
 /* ============================ APP SHELL ============================ */
 const NAV = [
   { id: "guide", label: "Panduan", icon: Icons.help },
+  { id: "doa", label: "Doa Hijrah", icon: Icons.hands },
+  { id: "adab", label: "Adab Bertetangga", icon: Icons.mosque },
   { id: "dashboard", label: "Dashboard", icon: Icons.dashboard },
   { id: "checklist", label: "Checklist Barang", icon: Icons.checklist },
   { id: "timeline", label: "Timeline", icon: Icons.timeline },
@@ -1168,12 +1449,12 @@ function App() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white mb-4 animate-pop"><Icon d={Icons.truck} className="w-8 h-8"/></div>
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" style={{ borderWidth: 3 }}></div>
-        <p className="text-sm text-slate-400 mt-4">Memuat MoveEasy…</p>
+        <p className="text-sm text-slate-400 mt-4">Memuat Pindahan…</p>
       </div>
     );
   }
 
-  const pages = { guide: Guide, dashboard: Dashboard, checklist: Checklist, timeline: Timeline, budget: Budget, priority: Priority, volume: Volume, room: RoomPlanner, moveday: MoveDay, report: Report };
+  const pages = { guide: Guide, doa: DoaHijrah, adab: AdabTetangga, dashboard: Dashboard, checklist: Checklist, timeline: Timeline, budget: Budget, priority: Priority, volume: Volume, room: RoomPlanner, moveday: MoveDay, report: Report };
   const Page = pages[page];
 
   return (
@@ -1182,7 +1463,7 @@ function App() {
       <aside className={`fixed lg:static z-40 inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 no-print flex flex-col`}>
         <div className="p-5 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white"><Icon d={Icons.truck} className="w-6 h-6"/></div>
-          <div><p className="font-bold text-lg leading-tight">MoveEasy</p><p className="text-xs text-slate-400">Asisten Pindahan</p></div>
+          <div><p className="font-bold text-lg leading-tight">Pindahan</p><p className="text-xs text-slate-400">Asisten Pindahan</p></div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {NAV.map((n) => (
@@ -1204,7 +1485,7 @@ function App() {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="lg:hidden sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between no-print">
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={Icons.menu} className="w-5 h-5"/></button>
-          <span className="font-bold">MoveEasy</span>
+          <span className="font-bold">Pindahan</span>
           <button onClick={() => setData({ ...data, darkMode: !data.darkMode })} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Icon d={data.darkMode ? Icons.sun : Icons.moon} className="w-5 h-5"/></button>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
