@@ -46,10 +46,7 @@
 
   /* ===== PERBAIKAN PRINT ===== */
   @media print {
-    /* Sembunyikan elemen non-print */
     .no-print { display: none !important; }
-
-    /* Reset background & warna */
     body {
       background: #ffffff !important;
       color: #1e293b !important;
@@ -58,14 +55,10 @@
       margin: 0 !important;
       padding: 0 !important;
     }
-
-    /* Aturan halaman */
     @page {
       size: A4 portrait;
       margin: 15mm 12mm 15mm 12mm;
     }
-
-    /* Pastikan semua konten terlihat dan tidak terpotong */
     #root, .min-h-screen, .flex-1, main {
       display: block !important;
       overflow: visible !important;
@@ -77,20 +70,12 @@
       margin: 0 !important;
       width: 100% !important;
     }
-
-    /* Sidebar disembunyikan */
-    aside, header.lg\\:hidden {
-      display: none !important;
-    }
-
-    /* Main content full width */
+    aside, header.lg\\:hidden { display: none !important; }
     .flex-1 {
       margin-left: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
     }
-
-    /* Semua card & block agar tidak pecah */
     .print-block {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
@@ -102,8 +87,6 @@
       border-radius: 6pt !important;
       overflow: visible !important;
     }
-
-    /* Grid layout untuk print - jadi 2 kolom */
     .grid {
       display: flex !important;
       flex-wrap: wrap !important;
@@ -114,31 +97,19 @@
       min-width: 0 !important;
       box-sizing: border-box !important;
     }
-    /* Tapi untuk grid 4 kolom di report */
     .grid-cols-4, .grid-cols-2 {
       display: flex !important;
       flex-wrap: wrap !important;
       gap: 8pt !important;
     }
-    .grid-cols-4 > * {
-      flex: 1 1 calc(25% - 8pt) !important;
-      min-width: 0 !important;
-    }
-    .grid-cols-2 > * {
-      flex: 1 1 calc(50% - 8pt) !important;
-      min-width: 0 !important;
-    }
-    /* Khusus untuk lg:grid-cols-2 di report -> 1 kolom saat print biar muat */
-    .lg\\:grid-cols-2 {
-      display: block !important;
-    }
+    .grid-cols-4 > * { flex: 1 1 calc(25% - 8pt) !important; }
+    .grid-cols-2 > * { flex: 1 1 calc(50% - 8pt) !important; }
+    .lg\\:grid-cols-2 { display: block !important; }
     .lg\\:grid-cols-2 > * {
       display: block !important;
       width: 100% !important;
       margin-bottom: 10pt !important;
     }
-
-    /* Chart container */
     .recharts-wrapper, .recharts-surface {
       max-width: 100% !important;
       height: auto !important;
@@ -149,40 +120,19 @@
       height: auto !important;
       min-height: 160pt !important;
     }
-    /* Pastikan SVG tidak overflow */
     svg {
       max-width: 100% !important;
       height: auto !important;
       overflow: visible !important;
     }
-
-    /* Table / detail rows */
-    .border-b {
-      border-bottom: 1px solid #e2e8f0 !important;
-    }
-
-    /* Spacing */
+    .border-b { border-bottom: 1px solid #e2e8f0 !important; }
     .mb-5, .mb-4, .mb-3, .mt-5, .mt-4 {
       margin-bottom: 8pt !important;
       margin-top: 8pt !important;
     }
-
-    /* Title */
-    h1, h2, h3, .font-bold {
-      color: #0f172a !important;
-    }
-
-    /* Pastikan tidak ada overflow tersembunyi */
-    .overflow-x-auto, .overflow-hidden {
-      overflow: visible !important;
-    }
-
-    /* Kiblat & denah tidak kepotong */
-    .relative {
-      position: relative !important;
-    }
-
-    /* Jurnal textarea jadi plain text */
+    h1, h2, h3, .font-bold { color: #0f172a !important; }
+    .overflow-x-auto, .overflow-hidden { overflow: visible !important; }
+    .relative { position: relative !important; }
     textarea {
       border: 1px solid #cbd5e1 !important;
       background: #f8fafc !important;
@@ -190,39 +140,14 @@
       resize: none !important;
       min-height: 60pt !important;
     }
-
-    /* Footer / doa penutup */
-    .mt-5 {
-      margin-top: 12pt !important;
-    }
-
-    /* Pastikan .arabic tidak overflow */
-    .arabic {
-      word-wrap: break-word !important;
-      overflow-wrap: break-word !important;
-    }
-
-    /* Force semua konten terlihat */
-    * {
-      overflow: visible !important;
-    }
-
-    /* Page break sebelum section utama laporan */
-    .report-page {
-      page-break-before: auto !important;
-      page-break-after: avoid !important;
-    }
-
-    /* Pastikan card value tidak terpotong */
-    .text-2xl, .text-xl {
-      font-size: 14pt !important;
-    }
-    .text-5xl {
-      font-size: 20pt !important;
-    }
+    .mt-5 { margin-top: 12pt !important; }
+    .arabic { word-wrap: break-word !important; overflow-wrap: break-word !important; }
+    * { overflow: visible !important; }
+    .report-page { page-break-before: auto !important; page-break-after: avoid !important; }
+    .text-2xl, .text-xl { font-size: 14pt !important; }
+    .text-5xl { font-size: 20pt !important; }
   }
 
-  /* Tambahan untuk layar kecil */
   @media screen and (max-width: 640px) {
     .grid-cols-2 { grid-template-columns: 1fr 1fr; }
     .grid-cols-4 { grid-template-columns: 1fr 1fr; }
@@ -1536,49 +1461,120 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-/* ---- PANDUAN / TUTORIAL ---- */
+/* ---- PANDUAN / TUTORIAL (diperbarui dengan semua fitur) ---- */
 function Guide({ data, setData }) {
   const steps = [
     {
-      icon: Icons.dashboard, color: "primary", title: "1. Atur Tanggal & Budget",
+      icon: Icons.budget,
+      color: "primary",
+      title: "1. Atur Tanggal & Budget",
       desc: "Mulai dari menu Budget Planner untuk menetapkan total budget pindahan, dan tetapkan tanggal pindah agar hitungan mundur di Dashboard berjalan.",
-      tips: ["Klik tombol \"Atur Budget\" lalu isi total dana yang kamu siapkan.", "Tanggal pindah dipakai untuk hitung mundur otomatis di Dashboard."],
+      tips: [
+        "Klik tombol \"Set Budget\" lalu isi total dana yang kamu siapkan.",
+        "Tanggal pindah dipakai untuk hitung mundur otomatis di Dashboard."
+      ]
     },
     {
-      icon: Icons.checklist, color: "secondary", title: "2. Daftarkan Barang",
+      icon: Icons.checklist,
+      color: "secondary",
+      title: "2. Daftarkan Barang",
       desc: "Buka Checklist Barang dan tambahkan semua barang yang akan dipindahkan beserta kategori, jumlah, dan tingkat prioritasnya.",
-      tips: ["Klik \"Tambah Barang\" untuk menambahkan item baru.", "Centang barang yang sudah dipacking agar progress terupdate.", "Gunakan pencarian, filter, dan urutkan untuk mengelola banyak barang."],
+      tips: [
+        "Klik \"Tambah Barang\" untuk menambahkan item baru.",
+        "Centang barang yang sudah dipacking agar progress terupdate.",
+        "Gunakan pencarian, filter, dan urutkan untuk mengelola banyak barang."
+      ]
     },
     {
-      icon: Icons.priority, color: "orange", title: "3. Tentukan Prioritas Packing",
+      icon: Icons.priority,
+      color: "orange",
+      title: "3. Tentukan Prioritas Packing",
       desc: "Di menu Prioritas Packing kamu bisa melihat barang dikelompokkan berdasarkan tingkat kepentingan, sehingga tahu mana yang harus dipacking lebih dulu.",
-      tips: ["Barang \"Sangat Penting\" sebaiknya dipacking paling akhir agar mudah diakses.", "Pantau berapa banyak barang prioritas tinggi yang belum dikemas."],
+      tips: [
+        "Barang \"Sangat Penting\" sebaiknya dipacking paling akhir agar mudah diakses.",
+        "Pantau berapa banyak barang prioritas tinggi yang belum dikemas."
+      ]
     },
     {
-      icon: Icons.timeline, color: "primary", title: "4. Susun Timeline",
+      icon: Icons.timeline,
+      color: "primary",
+      title: "4. Susun Timeline",
       desc: "Gunakan Timeline untuk membuat daftar tugas dengan deadline — seperti survey lokasi, sewa truk, hingga hari H pindahan.",
-      tips: ["Tetapkan status setiap tugas: Belum, Sedang, atau Selesai.", "Tugas otomatis terurut berdasarkan deadline terdekat."],
+      tips: [
+        "Tetapkan status setiap tugas: Belum, Sedang, atau Selesai.",
+        "Tugas otomatis terurut berdasarkan deadline terdekat."
+      ]
     },
     {
-      icon: Icons.budget, color: "secondary", title: "5. Catat Pengeluaran",
+      icon: Icons.budget,
+      color: "secondary",
+      title: "5. Catat Pengeluaran",
       desc: "Setiap kali ada pengeluaran (sewa truk, kardus, deposit, dll), catat di Budget Planner agar sisa budget selalu terpantau.",
-      tips: ["Grafik akan menampilkan pengeluaran per kategori.", "Dashboard memberi peringatan bila pengeluaran melebihi budget."],
+      tips: [
+        "Grafik akan menampilkan pengeluaran per kategori.",
+        "Dashboard memberi peringatan bila pengeluaran melebihi budget."
+      ]
     },
     {
-      icon: Icons.volume, color: "orange", title: "6. Estimasi Volume & Kendaraan",
+      icon: Icons.volume,
+      color: "orange",
+      title: "6. Estimasi Volume & Kendaraan",
       desc: "Isi jumlah kardus dan furnitur di Estimasi Volume untuk mendapatkan rekomendasi ukuran kendaraan yang sesuai.",
-      tips: ["Masukkan perkiraan jumlah tiap jenis barang.", "Sistem akan menyarankan jenis kendaraan yang cukup."],
+      tips: [
+        "Masukkan perkiraan jumlah tiap jenis barang.",
+        "Sistem akan menyarankan jenis kendaraan yang cukup."
+      ]
     },
     {
-      icon: Icons.room, color: "primary", title: "7. Rencanakan Tata Ruang",
+      icon: Icons.room,
+      color: "primary",
+      title: "7. Rencanakan Tata Ruang",
       desc: "Pakai Room Planner untuk menata posisi furnitur di rumah baru sebelum hari pindahan, supaya proses penataan lebih cepat.",
-      tips: ["Tempatkan item pada grid sesuai denah rumah baru."],
+      tips: [
+        "Tempatkan item pada grid 10×10 sesuai denah rumah baru.",
+        "Simpan layout dan tandai arah kiblat untuk musholla."
+      ]
     },
     {
-      icon: Icons.moveday, color: "secondary", title: "8. Checklist Hari-H & Laporan",
-      desc: "Pada hari pindahan, gunakan Move Day untuk memastikan tidak ada yang terlewat. Setelah selesai, lihat Laporan Akhir untuk ringkasan lengkap.",
-      tips: ["Laporan bisa dicetak (Print) atau diekspor sebagai file JSON.", "Semua data tersimpan otomatis di browser kamu."],
+      icon: Icons.moveday,
+      color: "secondary",
+      title: "8. Move Day Checklist",
+      desc: "Pada hari pindahan, gunakan Move Day untuk memastikan tidak ada yang terlewat, dengan checklist per fase (sebelum, saat, setelah).",
+      tips: [
+        "Tambahkan item custom sesuai kebutuhan.",
+        "Setiap item bisa diubah statusnya (Belum/Sedang/Selesai)."
+      ]
     },
+    {
+      icon: Icons.report,
+      color: "purple",
+      title: "9. Laporan Akhir & Print",
+      desc: "Setelah semua siap, buka Laporan Akhir untuk melihat ringkasan lengkap, grafik, dan detail persiapan. Bisa dicetak atau diekspor.",
+      tips: [
+        "Gunakan tombol Print untuk mencetak laporan (format A4).",
+        "Export JSON untuk backup data."
+      ]
+    },
+    {
+      icon: Icons.hands,
+      color: "secondary",
+      title: "10. Doa & Dzikir Hijrah",
+      desc: "Temukan doa-doa pilihan untuk keluar rumah, perjalanan, masuk rumah baru, istikharah, dan syukur. Tandai doa yang sudah dibaca.",
+      tips: [
+        "Setiap doa dilengkapi dengan teks Arab, latin, arti, dan sumber.",
+        "Progress doa dibaca terlihat di bagian atas."
+      ]
+    },
+    {
+      icon: Icons.mosque,
+      color: "primary",
+      title: "11. Adab Bertetangga",
+      desc: "Checklist adab Islami saat pindah rumah, seperti berkenalan, memberi hadiah, dan menjaga hak tetangga.",
+      tips: [
+        "Centang adab yang sudah dilaksanakan.",
+        "Tambahkan adab custom sendiri."
+      ]
+    }
   ];
 
   const confirm = useConfirm();
@@ -1596,6 +1592,7 @@ function Guide({ data, setData }) {
     primary: "bg-primary/10 text-primary",
     secondary: "bg-secondary/10 text-secondary",
     orange: "bg-orange-500/10 text-orange-600",
+    purple: "bg-purple-500/10 text-purple-600",
   };
 
   return (
@@ -1608,7 +1605,7 @@ function Guide({ data, setData }) {
           <div>
             <h2 className="text-xl font-bold mb-1">Selamat datang di Pindahan!</h2>
             <p className="text-sm text-white/90 leading-relaxed max-w-2xl">
-              Aplikasi ini membantu kamu merencanakan pindahan rumah secara terstruktur. Datamu masih kosong — ikuti 8 langkah di bawah untuk mulai mengisi data. Semua tersimpan otomatis di perangkat ini.
+              Aplikasi ini membantu kamu merencanakan pindahan rumah secara terstruktur. Datamu masih kosong — ikuti 11 langkah di bawah untuk mulai mengisi data. Semua tersimpan otomatis di perangkat ini.
             </p>
           </div>
         </div>
