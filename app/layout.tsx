@@ -10,9 +10,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Pindahan - Asisten Pindahan',
+  description: 'Aplikasi asisten pindahan rumah',
+  generator: 'next.js',
   icons: {
     icon: [
       {
