@@ -164,7 +164,7 @@ const {
   Tooltip, ResponsiveContainer, Legend
 } = Recharts;
 
-/* ============================ DATA LAYER ============================ */
+/*DATA LAYER */
 const STORAGE_KEY = "moveeasy_data";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -191,7 +191,7 @@ function loadData() {
   } catch (e) { return JSON.parse(JSON.stringify(SAMPLE)); }
 }
 
-/* ============================ CONSTANTS ============================ */
+/*  CONSTANTS  */
 const CATEGORIES = ["Elektronik", "Pakaian", "Dokumen", "Peralatan Dapur", "Furniture", "Perlengkapan Mandi", "Lainnya"];
 const PRIORITIES = ["Sangat Penting", "Penting", "Normal", "Tidak Mendesak"];
 const EXPENSE_CATS = ["Transportasi", "Sewa Truk", "Packing Supplies", "Deposit", "Makan", "Biaya Tak Terduga"];
@@ -211,7 +211,7 @@ const daysBetween = (d) => {
   return Math.ceil(diff);
 };
 
-/* ============================ ICONS ============================ */
+/*  ICONS  */
 const Icon = ({ d, className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
 );
@@ -248,7 +248,7 @@ const Icons = {
   compass: <><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>,
 };
 
-/* ============================ TOAST ============================ */
+/*  TOAST  */
 const ToastCtx = createContext(null);
 const useToast = () => useContext(ToastCtx);
 function ToastProvider({ children }) {
@@ -274,7 +274,7 @@ function ToastProvider({ children }) {
   );
 }
 
-/* ============================ UI PRIMITIVES ============================ */
+/*  UI PRIMITIVES  */
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
@@ -361,9 +361,9 @@ function useConfirm() {
   return (msg) => window.confirm(msg);
 }
 
-/* ============================ PAGES ============================ */
+/*  PAGES  */
 
-/* ---- DASHBOARD ---- */
+/*  DASHBOARD  */
 function Dashboard({ data, setData }) {
   const packed = data.items.filter((i) => i.packed).length;
   const total = data.items.length;
@@ -464,7 +464,7 @@ function Dashboard({ data, setData }) {
   );
 }
 
-/* ---- CHECKLIST BARANG ---- */
+/*  CHECKLIST BARANG  */
 function Checklist({ data, setData }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -580,7 +580,7 @@ function Checklist({ data, setData }) {
   );
 }
 
-/* ---- TIMELINE ---- */
+/*  TIMELINE  */
 function Timeline({ data, setData }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -690,7 +690,7 @@ function Timeline({ data, setData }) {
   );
 }
 
-/* ---- BUDGET ---- */
+/*  BUDGET  */
 function Budget({ data, setData }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -815,7 +815,7 @@ function Budget({ data, setData }) {
   );
 }
 
-/* ---- PRIORITAS PACKING ---- */
+/*  PRIORITAS PACKING  */
 function Priority({ data, setData }) {
   const togglePack = (id) => setData({ ...data, items: data.items.map((i) => i.id === id ? { ...i, packed: !i.packed } : i) });
   const [filter, setFilter] = useState("Semua");
@@ -858,7 +858,7 @@ function Priority({ data, setData }) {
   );
 }
 
-/* ---- ESTIMASI VOLUME ---- */
+/*  ESTIMASI VOLUME  */
 function Volume({ data, setData }) {
   const toast = useToast();
   const v = data.volume;
@@ -912,7 +912,7 @@ function Volume({ data, setData }) {
   );
 }
 
-/* ---- ROOM PLANNER ---- */
+/*  ROOM PLANNER  */
 const FURNITURE = {
   "Kasur": { w: 2, h: 2, color: "#3B82F6" },
   "Lemari": { w: 1, h: 2, color: "#10B981" },
@@ -1024,7 +1024,7 @@ function RoomPlanner({ data, setData }) {
   );
 }
 
-/* ---- MOVE DAY CHECKLIST ---- */
+/*  MOVE DAY CHECKLIST  */
 const DEFAULT_MOVEDAY = () => {
   const make = (phase, names) => names.map((n) => ({ id: uid(), phase, name: n, status: "Belum", time: "" }));
   return [
@@ -1093,7 +1093,7 @@ function MoveDay({ data, setData }) {
   );
 }
 
-/* ---- LAPORAN AKHIR ---- */
+/*  LAPORAN AKHIR  */
 const JURNAL_KEY = "moveeasy_jurnal";
 
 function Report({ data }) {
@@ -1241,7 +1241,7 @@ function Report({ data }) {
   );
 }
 
-/* ---- DOA & DZIKIR HIJRAH ---- */
+/*  DOA & DZIKIR HIJRAH  */
 const DOA_LIST = [
   {
     id: "d1",
@@ -1357,7 +1357,7 @@ function DoaHijrah({ data, setData }) {
   );
 }
 
-/* ---- ADAB BERTETANGGA ---- */
+/*  ADAB BERTETANGGA  */
 const ADAB_DEFAULT = [
   { id: "a1", adab: "Perkenalkan diri dalam 3 hari pertama pindah", dalil: "HR. Bukhari & Muslim" },
   { id: "a2", adab: "Beri hadiah atau makanan kepada 7 rumah terdekat", dalil: "HR. Muslim" },
@@ -1442,7 +1442,7 @@ function AdabTetangga({ data, setData }) {
   );
 }
 
-/* ============================ ERROR BOUNDARY ============================ */
+/*  ERROR BOUNDARY  */
 class ErrorBoundary extends React.Component {
   constructor(p) { super(p); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
@@ -1461,7 +1461,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-/* ---- PANDUAN / TUTORIAL (diperbarui dengan semua fitur) ---- */
+/*  PANDUAN / TUTORIAL (diperbarui dengan semua fitur)  */
 function Guide({ data, setData }) {
   const steps = [
     {
@@ -1581,10 +1581,17 @@ function Guide({ data, setData }) {
   const toast = useToast();
   const resetAll = () => {
     if (confirm("Yakin ingin menghapus SEMUA data dan memulai dari awal? Tindakan ini tidak bisa dibatalkan.")) {
+      // Reset data utama ke default
       const fresh = JSON.parse(JSON.stringify(SAMPLE));
-      fresh.darkMode = data.darkMode;
+      // Hapus semua data dari localStorage
+      const keys = [STORAGE_KEY, 'moveeasy_kiblat', 'moveeasy_jurnal', 'moveeasy_doa_read', 'moveeasy_adab'];
+      keys.forEach(k => localStorage.removeItem(k));
+      // Tulis ulang data utama yang sudah direset
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       setData(fresh);
       toast("Semua data berhasil direset", "info");
+      // Reload halaman untuk menyegarkan semua state
+      setTimeout(() => window.location.reload(), 400);
     }
   };
 
@@ -1656,7 +1663,7 @@ function Guide({ data, setData }) {
   );
 }
 
-/* ============================ APP SHELL ============================ */
+/*  APP SHELL  */
 const NAV = [
   { id: "guide", label: "Panduan", icon: Icons.help },
   { id: "doa", label: "Doa Hijrah", icon: Icons.hands },
